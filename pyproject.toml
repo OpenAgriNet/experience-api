@@ -59,6 +59,11 @@ select = [
     "B",   # flake8-bugbear
 ]
 
+[tool.ruff.lint.isort]
+# `tests.support` is imported by test modules; without this, isort files it as
+# third party.
+known-first-party = ["experience_api", "tests"]
+
 # Absolute imports only. A relative import hides which layer it reaches into,
 # and `from .adapters import x` inside a feature is the easiest way to break the
 # dependency rule. tests/test_boundaries.py resolves them anyway; this stops
@@ -91,6 +96,9 @@ typeCheckingMode = "standard"
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
+# tests/support/ holds shared test data that test modules import directly.
+# Without this, `tests` is not importable and those imports fail.
+pythonpath = ["."]
 # --import-mode=importlib: test folders mirror src/, so sibling packages may
 # each hold a `test_mapping.py`. Under the default prepend mode those collide on
 # the module name; importlib gives each its own full path.
@@ -125,3 +133,5 @@ paths = ["src", "tests", "vulture_whitelist.py"]
 # decorator therefore counts as a use. Extend this when another kind of
 # decorated hook arrives (exception handlers, websockets).
 ignore_decorators = ["@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete"]
+# Read by pydantic, never by our code.
+ignore_names = ["model_config"]

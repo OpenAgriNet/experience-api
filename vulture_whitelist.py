@@ -9,3 +9,8 @@ To every other tool this file is a useless expression on an undefined name, by
 design. Ruff ignores B018 and F821 here, and the file sits outside pyright's
 `include`.
 """
+
+# ChatTurn fields read only by the DSS request mapping, which arrives with
+# HttpDssClient. Remove these lines then.
+_.source_language
+_.target_language
