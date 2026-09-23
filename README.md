@@ -10,3 +10,11 @@ request, calls the DSS, and streams the answer back.
 uv sync
 uv run ruff check . && uv run ruff format --check . && uv run pytest
 ```
+
+Once per clone, install the git hooks. Lint runs on every commit; the test
+suite runs before every push. CI runs the same checks, so `--no-verify` only
+moves a failure later.
+
+```bash
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+```

@@ -26,6 +26,7 @@ packages = ["src/experience_api"]
 [dependency-groups]
 dev = [
     "asgi-lifespan>=2.1.0",
+    "pre-commit>=4.0.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.0.0",
     # Coverage is reported on every run (report-only, no gate) so regressions

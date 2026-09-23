@@ -1,0 +1,35 @@
+# Install once per clone:
+#   uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+# Local hooks can be bypassed with `--no-verify`, so CI runs the same checks.
+
+# Every hook runs on commit unless it names its own stage.
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      # The full test suite before code leaves the machine (CONVENTIONS.md).
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
