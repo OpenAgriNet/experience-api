@@ -81,3 +81,62 @@ class Message(_Request):
 class TurnRequest(_Request):
     context: Context
     message: Message
+
+
+# ---------------------------------------------------------------------------
+# Response side: lenient. Unknown fields are ignored, and content and citation
+# types we do not know are read loosely here and skipped by the mapping. The
+# DSS may add any of these in a `/v1` release; none may break a turn.
+# ---------------------------------------------------------------------------
+
+
+class _Response(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, extra="ignore", frozen=True)
+
+
+class ResponseContext(_Response):
+    trace_id: str
+    res_message_id: str
+
+
+class Annotation(_Response):
+    type: str
+    source_id: str | None = None
+    start_index: int | None = None
+    end_index: int | None = None
+
+
+class ContentItem(_Response):
+    type: str
+    text: str | None = None
+    annotations: list[Annotation] = []
+
+
+class Outcome(_Response):
+    status: str
+    cause: str | None = None
+
+
+class Source(_Response):
+    id: str
+    name: str
+    url: str | None = None
+
+
+class TurnError(_Response):
+    code: str
+    message: str
+    retryable: bool
+    retry_after_seconds: int | None = None
+
+
+class ResponseMessage(_Response):
+    outcome: Outcome | None = None
+    content: list[ContentItem] = []
+    sources: list[Source] = []
+    error: TurnError | None = None
+
+
+class TurnResponse(_Response):
+    context: ResponseContext
+    message: ResponseMessage
