@@ -7,6 +7,7 @@ All notable changes to this project are recorded here, in the format of
 ## [Unreleased]
 
 ### Added
+- `POST /v1/chat`: SSE or JSON by `Accept`, answered by a fake DSS for now.
 - The repo skeleton: uv, ruff, pyright, vulture, pytest, pre-commit and CI.
 - `create_app()`, the composition root.
 - `GET /healthz`, for Docker and the front proxy.

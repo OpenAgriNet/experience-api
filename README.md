@@ -17,14 +17,43 @@ The API listens on `http://localhost:8078`.
 
 | Path | What |
 |---|---|
+| `POST /v1/chat` | One chat turn, [contract](./docs/api-contracts/api-contract.md) §4–§6 |
 | `GET /healthz` | `{"status": "ok"}` when the process is up. For Docker and the proxy |
 | `GET /docs` | The interactive OpenAPI page |
+
+There is no real DSS behind it yet. A fake DSS answers every turn with the
+contract's `answered` example, so the web client can build against a running
+API.
 
 ```bash
 curl -i http://localhost:8078/healthz
 ```
 
 Add `--reload` to restart on every file change while developing.
+
+### Try a chat turn
+
+```bash
+cat > request.json <<'JSON'
+{
+  "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+  "messageId": "1ab38d6c-6fdb-4849-8ea1-da5e80a8687c",
+  "query": "And what about tomorrow?",
+  "history": [],
+  "language": { "source": "en", "target": "en" }
+}
+JSON
+
+# Streamed: started, delta..., completed
+curl -N -H 'Accept: text/event-stream' -H 'Content-Type: application/json' \
+     -d @request.json http://localhost:8078/v1/chat
+
+# One JSON answer
+curl -H 'Content-Type: application/json' -d @request.json http://localhost:8078/v1/chat
+```
+
+A body that breaks the contract's rules gets FastAPI's default `422` for now
+(contract §6.1).
 
 ## Check it
 
