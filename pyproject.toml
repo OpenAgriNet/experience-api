@@ -56,6 +56,13 @@ select = [
     "B",   # flake8-bugbear
 ]
 
+# Absolute imports only. A relative import hides which layer it reaches into,
+# and `from .adapters import x` inside a feature is the easiest way to break the
+# dependency rule. tests/test_boundaries.py resolves them anyway; this stops
+# them being written.
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
 # ---------------------------------------------------------------------------
 # Editors default to the system interpreter and then cannot resolve pytest or
 # pydantic. This points them at the project venv. Type checking is not a gate;
