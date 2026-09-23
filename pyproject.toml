@@ -25,12 +25,16 @@ packages = ["src/experience_api"]
 
 [dependency-groups]
 dev = [
+    "asgi-lifespan>=2.1.0",
+    "pre-commit>=4.0.0",
+    "pyright>=1.1.400",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.0.0",
     # Coverage is reported on every run (report-only, no gate) so regressions
     # are visible without blocking a merge — see addopts below.
     "pytest-cov>=7.1.0",
     "ruff>=0.16.4",
+    "vulture>=2.14",
 ]
 
 # ---------------------------------------------------------------------------
@@ -39,7 +43,7 @@ dev = [
 # ---------------------------------------------------------------------------
 [tool.ruff]
 line-length = 88
-src = ["src", "tests", "scripts"]
+src = ["src", "tests"]
 target-version = "py313"
 # Docs contain illustrative Python in fenced blocks whose alignment is
 # deliberate. Formatting them rewrites the prose's meaning, so they are excluded.
@@ -55,20 +59,27 @@ select = [
     "B",   # flake8-bugbear
 ]
 
-[tool.ruff.lint.isort]
-# `scripts/` is ours but is not packaged (only `src/experience_api` ships), so
-# isort has no way to infer it and files it under third-party beside pytest.
-known-first-party = ["experience_api", "scripts", "tests"]
+# Absolute imports only. A relative import hides which layer it reaches into,
+# and `from .adapters import x` inside a feature is the easiest way to break the
+# dependency rule. tests/test_boundaries.py resolves them anyway; this stops
+# them being written.
+[tool.ruff.lint.per-file-ignores]
+# The vulture whitelist is `_.name` lines by design (see its docstring).
+"vulture_whitelist.py" = ["B018", "F821"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 # ---------------------------------------------------------------------------
-# Editors default to the system interpreter and then cannot resolve pytest or
-# pydantic. This points them at the project venv. Type checking is not a gate;
-# ruff is the only enforced tool.
+# Static analysis. pyright in `standard` mode is a gate, in pre-commit and CI.
+# `venvPath`/`venv` point editors and the CLI at the project venv, since both
+# default to the system interpreter and then cannot resolve the dependencies.
 # ---------------------------------------------------------------------------
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
 include = ["src", "tests"]
+typeCheckingMode = "standard"
 
 # ---------------------------------------------------------------------------
 # Tests. The `e2e` marker is excluded from the default run: that tier needs a
@@ -80,7 +91,6 @@ include = ["src", "tests"]
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
-pythonpath = ["."]
 # --import-mode=importlib: test folders mirror src/, so sibling packages may
 # each hold a `test_mapping.py`. Under the default prepend mode those collide on
 # the module name; importlib gives each its own full path.
@@ -99,6 +109,19 @@ addopts = [
 # test regardless of marker.
 asyncio_mode = "auto"
 markers = [
-    "e2e: one turn against a real DSS; needs XAPI_DSS_BASE_URL to point at one",
+    "e2e: one turn against a real DSS; needs a running DSS",
 ]
 strict_markers = true
+
+# ---------------------------------------------------------------------------
+# Dead code. vulture reports unused functions, classes, imports and variables,
+# at its default confidence (60%). A false positive earns a line in
+# `vulture_whitelist.py`, not a lower bar. The whitelist is one of the paths, so
+# every name it mentions counts as used.
+# ---------------------------------------------------------------------------
+[tool.vulture]
+paths = ["src", "tests", "vulture_whitelist.py"]
+# FastAPI calls a decorated route; our code never names it. A router's HTTP-verb
+# decorator therefore counts as a use. Extend this when another kind of
+# decorated hook arrives (exception handlers, websockets).
+ignore_decorators = ["@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete"]
