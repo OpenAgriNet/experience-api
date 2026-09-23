@@ -1,0 +1,20 @@
+# Run: docker compose up --build
+# The API on http://localhost:8078, answered by the fake DSS until the real
+# client exists.
+services:
+  experience-api:
+    image: ghcr.io/openagrinet/experience-api:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # Localhost only. In a deployment the front proxy is the way in.
+      - "127.0.0.1:${EXPERIENCE_API_HOST_PORT:-8078}:8078"
+    healthcheck:
+      # The slim image has no curl; Python is already there. Shell form, because
+      # some engines split the exec form's arguments on spaces.
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8078/healthz')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
