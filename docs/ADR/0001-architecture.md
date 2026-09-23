@@ -118,7 +118,7 @@ About 18 source files. Every one has a single reason to change.
 |---|---|---|
 | `<feature>/domain.py` | the standard library, pydantic | anything else in the app |
 | `<feature>/service.py`, `ports.py` | its own `domain.py`, `ports.py` | `fastapi`, `httpx`, any `adapters/` |
-| `<feature>/adapters/*` | its own feature's `domain.py`, `ports.py`, `service.py` (an inbound adapter calls it) *(amended)*; `shared/` | another feature's `adapters/` |
+| `<feature>/adapters/*` | its own feature's `domain.py`, `ports.py`, `service.py` from the inbound `adapters/http/` only, which calls it *(amended)*; `shared/` | another feature's `adapters/` |
 | `shared/` | the standard library, pydantic, `fastapi` | any feature |
 | `app.py` | everything | — |
 
@@ -481,5 +481,5 @@ of the contract shows up at the seam. Each phase is one or two PRs.
 | `ChatService(client, settings=settings, ...)` | Plain values into the constructor | Keeps `Settings` out of the service; enforced by the boundary test |
 | Chat errors subclass `AppError` in `shared/` | Subclass `ChatError` in `chat/domain.py` | §4.1 forbids `domain.py` importing `shared/` |
 | Build order §10 | Walking skeleton first | So the client integrates early |
-| Adapters may import only their feature's `domain` and `ports` | Also its `service` | The route in §5.1 takes a `ChatService`; calling the service is an inbound adapter's job |
+| Adapters may import only their feature's `domain` and `ports` | The inbound `adapters/http/` may also import its `service` | The route in §5.1 takes a `ChatService`; calling the service is an inbound adapter's job |
 | Timeouts in step 5 | After `HttpDssClient`, with httpx timeouts as the interim safety net | Not needed for the first cut |
