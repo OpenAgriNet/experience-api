@@ -138,3 +138,5 @@ exclude = ["*/schemas.py"]
 # decorator therefore counts as a use. Extend this when another kind of
 # decorated hook arrives (exception handlers, websockets).
 ignore_decorators = ["@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete"]
+# pydantic's config hook, read by pydantic, never by our code.
+ignore_names = ["model_config"]
