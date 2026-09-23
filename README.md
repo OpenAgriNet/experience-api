@@ -31,6 +31,16 @@ curl -i http://localhost:8078/healthz
 
 Add `--reload` to restart on every file change while developing.
 
+### With Docker
+
+```bash
+docker compose up --build        # add -d to run it in the background
+docker compose down
+```
+
+Same port, same fake DSS. Set `EXPERIENCE_API_HOST_PORT` to publish it on
+another port. The container reports healthy once `/healthz` answers.
+
 ### Try a chat turn
 
 ```bash
