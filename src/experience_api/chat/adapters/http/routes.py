@@ -37,7 +37,9 @@ async def chat(
 ) -> Response:
     events = await service.open(to_chat_turn(body))
     if _wants_stream(accept):
-        return StreamingResponse(sse.frames(events), media_type=sse.MEDIA_TYPE)
+        return StreamingResponse(
+            sse.frames(events), media_type=sse.MEDIA_TYPE, headers=sse.HEADERS
+        )
     completed = await _drain(events)
     return JSONResponse(wire(to_final_answer(completed.ids, completed.answer)))
 

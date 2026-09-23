@@ -49,3 +49,12 @@ async def test_a_body_that_breaks_the_contract_is_a_422(
     )
 
     assert response.status_code == 422
+
+
+async def test_asks_proxies_and_caches_not_to_hold_the_stream(
+    running: httpx.AsyncClient,
+) -> None:
+    response = await running.post("/v1/chat", json=FOLLOW_UP, headers=SSE)
+
+    assert response.headers["cache-control"] == "no-cache"
+    assert response.headers["x-accel-buffering"] == "no"

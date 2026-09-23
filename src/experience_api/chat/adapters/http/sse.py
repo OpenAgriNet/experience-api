@@ -16,6 +16,10 @@ from experience_api.chat.adapters.http.schemas import wire
 from experience_api.chat.domain import ChatEvent
 
 MEDIA_TYPE = "text/event-stream"
+# The front proxy is meant to have buffering off (contract §2.1). These say the
+# same from our side, so a proxy or cache that missed it still passes each frame
+# on as it is written, not the whole answer at the end.
+HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 
 async def frames(events: AsyncGenerator[ChatEvent]) -> AsyncIterator[bytes]:
