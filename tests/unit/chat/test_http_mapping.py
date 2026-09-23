@@ -29,3 +29,15 @@ def test_no_location_stays_none() -> None:
     body: dict[str, Any] = {k: v for k, v in EXAMPLE.items() if k != "location"}
 
     assert to_chat_turn(ChatRequest.model_validate(body)).location is None
+
+
+def test_ids_pass_through_exactly_as_sent() -> None:
+    body = EXAMPLE | {
+        "sessionId": "68A3872F-3F0D-4CF6-99A3-A350132A0080",
+        "messageId": "1AB38D6C-6fdb-4849-8ea1-da5e80a8687c",
+    }
+
+    turn = to_chat_turn(ChatRequest.model_validate(body))
+
+    assert turn.session_id == "68A3872F-3F0D-4CF6-99A3-A350132A0080"
+    assert turn.message_id == "1AB38D6C-6fdb-4849-8ea1-da5e80a8687c"

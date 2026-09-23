@@ -23,8 +23,8 @@ from experience_api.chat.domain import (
 def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
     location = body.location
     return ChatTurn(
-        session_id=str(body.session_id),
-        message_id=str(body.message_id),
+        session_id=body.session_id,
+        message_id=body.message_id,
         query=body.query,
         history=tuple(Message(item.role, item.text) for item in body.history),
         source_language=body.language.source,

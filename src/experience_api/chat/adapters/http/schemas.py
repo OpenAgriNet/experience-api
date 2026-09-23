@@ -11,7 +11,6 @@ would reject must never reach it.
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
-from uuid import UUID
 
 from pydantic import (
     AfterValidator,
@@ -36,6 +35,15 @@ def _not_blank(value: str) -> str:
 # Kept as sent, not trimmed: the DSS gets the user's words unchanged.
 Text = Annotated[str, AfterValidator(_not_blank)]
 LanguageCode = Annotated[str, Field(pattern=BCP47)]
+# A UUID in its canonical hyphenated form, any case. Kept a string, never parsed
+# into `uuid.UUID`: the API passes ids back exactly as the client sent them
+# (contract §3), and parsing would lowercase them.
+Uuid = Annotated[
+    str,
+    Field(
+        pattern=r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
+    ),
+]
 
 
 class _WireIn(BaseModel):
@@ -62,8 +70,8 @@ class Location(_WireIn):
 
 
 class ChatRequest(_WireIn):
-    session_id: UUID
-    message_id: UUID
+    session_id: Uuid
+    message_id: Uuid
     query: Text
     history: list[HistoryItem]
     language: Language
