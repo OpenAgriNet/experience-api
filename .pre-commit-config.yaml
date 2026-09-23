@@ -25,6 +25,15 @@ repos:
 
   - repo: local
     hooks:
+      # Types on every commit. `always_run`, because a change to pyproject.toml
+      # alone can loosen the check. Runs from the project venv, not a hook venv,
+      # so pyright sees the real dependencies.
+      - id: pyright
+        name: pyright
+        entry: uv run pyright
+        language: system
+        pass_filenames: false
+        always_run: true
       # The full test suite before code leaves the machine (CONVENTIONS.md).
       - id: pytest
         name: pytest

@@ -27,6 +27,7 @@ packages = ["src/experience_api"]
 dev = [
     "asgi-lifespan>=2.1.0",
     "pre-commit>=4.0.0",
+    "pyright>=1.1.400",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.0.0",
     # Coverage is reported on every run (report-only, no gate) so regressions
@@ -65,14 +66,15 @@ select = [
 ban-relative-imports = "all"
 
 # ---------------------------------------------------------------------------
-# Editors default to the system interpreter and then cannot resolve pytest or
-# pydantic. This points them at the project venv. Type checking is not a gate;
-# ruff is the only enforced tool.
+# Static analysis. pyright in `standard` mode is a gate, in pre-commit and CI.
+# `venvPath`/`venv` point editors and the CLI at the project venv, since both
+# default to the system interpreter and then cannot resolve the dependencies.
 # ---------------------------------------------------------------------------
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
 include = ["src", "tests"]
+typeCheckingMode = "standard"
 
 # ---------------------------------------------------------------------------
 # Tests. The `e2e` marker is excluded from the default run: that tier needs a
