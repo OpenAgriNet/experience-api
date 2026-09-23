@@ -129,13 +129,11 @@ strict_markers = true
 # ---------------------------------------------------------------------------
 [tool.vulture]
 paths = ["src", "tests", "vulture_whitelist.py"]
+# Wire models declare what goes on and comes off the wire. Every field is used
+# by serialization or validation, which vulture cannot see, so their modules are
+# not checked.
+exclude = ["*/schemas.py"]
 # FastAPI calls a decorated route; our code never names it. A router's HTTP-verb
 # decorator therefore counts as a use. Extend this when another kind of
 # decorated hook arrives (exception handlers, websockets).
-ignore_decorators = [
-    "@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete",
-    # pydantic calls these while serializing.
-    "@model_serializer",
-]
-# Read by pydantic, never by our code.
-ignore_names = ["model_config"]
+ignore_decorators = ["@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete"]
