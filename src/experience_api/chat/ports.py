@@ -19,3 +19,7 @@ class DssClient(Protocol):
         closes the generator when it stops reading, which ends the DSS call.
         """
         ...
+
+    async def aclose(self) -> None:
+        """Release what the client holds, such as a connection pool."""
+        ...

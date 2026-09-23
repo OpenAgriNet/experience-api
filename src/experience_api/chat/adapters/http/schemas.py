@@ -140,3 +140,20 @@ class FinalAnswer(_WireOut):
     content: list[TextContent | RefusalContent]
     sources: list[Source]
     error: Error | None = None
+
+
+# ---------------------------------------------------------------------------
+# Stream events, contract §5.1. `completed` carries a FinalAnswer. Each frame's
+# data also carries `sequence`, which the framing adds.
+# ---------------------------------------------------------------------------
+
+
+class StartedEvent(_WireOut):
+    session_id: str
+    message_id: str
+    assistant_message_id: str
+    trace_id: str
+
+
+class DeltaEvent(_WireOut):
+    text: str

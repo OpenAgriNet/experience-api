@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+from pydantic import BaseModel
+
 from experience_api.chat.adapters.http import schemas
 from experience_api.chat.domain import (
     Answer,
     Block,
+    ChatEvent,
     ChatTurn,
+    Completed,
+    Delta,
     Location,
     Message,
     RefusalBlock,
+    Started,
     TurnIds,
 )
 
@@ -68,3 +74,20 @@ def _block(block: Block) -> schemas.TextContent | schemas.RefusalContent:
             for c in block.citations
         ],
     )
+
+
+def to_wire_event(event: ChatEvent) -> tuple[str, BaseModel]:
+    """The event's name on the stream, and its data."""
+
+    match event:
+        case Started(ids):
+            return "started", schemas.StartedEvent(
+                session_id=ids.session_id,
+                message_id=ids.message_id,
+                assistant_message_id=ids.assistant_message_id,
+                trace_id=ids.trace_id,
+            )
+        case Delta(text):
+            return "delta", schemas.DeltaEvent(text=text)
+        case Completed(ids, answer):
+            return "completed", to_final_answer(ids, answer)
