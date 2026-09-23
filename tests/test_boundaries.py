@@ -20,7 +20,9 @@ What each layer may import, beyond the standard library:
   `Settings`, so only `app.py` reads settings.
 - `<feature>/adapters/<name>/**`: any third party; the feature's own `domain`
   and `ports`; siblings in the same `adapters/<name>`; `shared`; and another
-  feature's package itself (`experience_api.auth`), never its insides.
+  feature's package itself (`experience_api.auth`), never its insides. An
+  inbound adapter (`adapters/http/`) may also import its feature's `service`,
+  since calling it is its job. An outbound one may not.
 
 Imports are read from the AST, never executed. A relative import is resolved to
 its absolute name first. `from pkg import mod` counts as importing `pkg.mod`
@@ -42,6 +44,8 @@ SRC = Path(__file__).resolve().parents[1] / "src" / PACKAGE
 
 STDLIB = frozenset(sys.stdlib_module_names)
 ROOT_MODULES = frozenset({"app", "settings", "shared"})
+# Adapters that drive the feature from outside, and so call its service.
+INBOUND_ADAPTERS = frozenset({"http"})
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,8 @@ def classify(module: tuple[str, ...], is_package: bool) -> Layer | None:
         own = [f"{feature}.domain", f"{feature}.ports", "shared.*"]
         if len(module) >= 3:
             own.append(f"{feature}.adapters.{module[2]}.*")
+            if module[2] in INBOUND_ADAPTERS:
+                own.append(f"{feature}.service")
         return Layer("adapter", None, tuple(own), other_features=True)
     return None
 
@@ -231,6 +237,7 @@ ALLOWED = {
         "from fastapi import APIRouter\n"
         f"from {PACKAGE}.auth import current_user\n"
         f"from {PACKAGE}.chat import domain\n"
+        f"from {PACKAGE}.chat.service import ChatService\n"
         f"from {PACKAGE}.shared.errors import AppError\n"
         "from . import schemas\n"
     ),
@@ -328,6 +335,17 @@ BREAKS = {
             ),
         },
         f"chat/adapters/http/routes.py -> {PACKAGE}.chat.adapters.dss.fake: "
+        "adapter may not import it",
+    ),
+    "an outbound adapter imports the service": (
+        {
+            **CHAT_DSS,
+            "chat/service.py": "",
+            "chat/adapters/dss/client.py": (
+                f"from {PACKAGE}.chat.service import ChatService\n"
+            ),
+        },
+        f"chat/adapters/dss/client.py -> {PACKAGE}.chat.service: "
         "adapter may not import it",
     ),
     "shared imports a feature": (
