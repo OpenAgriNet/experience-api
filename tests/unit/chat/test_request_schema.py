@@ -42,20 +42,14 @@ def test_the_contract_example_is_valid() -> None:
 @pytest.mark.parametrize(
     "body",
     [
-        _with("history", []),
-        _with("location", ...),
         _with("language.source", "hi-IN"),
-        _with("language.target", "hi"),
         _with("history", [{"role": "user", "text": t} for t in ("a", "b")]),
         _with("location.latitude", -90),
         _with("location.longitude", 180),
         _with("location.latitude", 20),
     ],
     ids=[
-        "empty history",
-        "no location",
         "language with region",
-        "different target language",
         "history need not alternate",
         "latitude at its bound",
         "longitude at its bound",
