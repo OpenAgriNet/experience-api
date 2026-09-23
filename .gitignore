@@ -1,0 +1,27 @@
+.vscode
+.idea
+.claude/settings.local.json
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local working files — plans, handoffs, notes. Not for review.
+docs/implementation/
+.scratchpad/

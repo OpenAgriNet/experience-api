@@ -1,0 +1,104 @@
+[project]
+name = "experience-api"
+version = "0.1.0"
+description = "Experience API — the HTTP service between the OpenAgriNet web client and the DSS"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.141.1",
+    "uvicorn>=0.52.4",
+    # The async HTTP client behind the DSS adapter. FastAPI's test transport is
+    # built on it too, so it is one runtime dependency rather than one client
+    # for prod and another for tests.
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.5.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.32.0"]
+build-backend = "hatchling.build"
+
+# src/experience_api does not match the distribution name, so the package path
+# is explicit.
+[tool.hatch.build.targets.wheel]
+packages = ["src/experience_api"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.0.0",
+    # Coverage is reported on every run (report-only, no gate) so regressions
+    # are visible without blocking a merge — see addopts below.
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.4",
+]
+
+# ---------------------------------------------------------------------------
+# Linting & formatting — ruff only; it replaces black, flake8, and isort. The
+# same config as the DSS, so the two repos never drift (CONVENTIONS.md).
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 88
+src = ["src", "tests", "scripts"]
+target-version = "py313"
+# Docs contain illustrative Python in fenced blocks whose alignment is
+# deliberate. Formatting them rewrites the prose's meaning, so they are excluded.
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+]
+
+[tool.ruff.lint.isort]
+# `scripts/` is ours but is not packaged (only `src/experience_api` ships), so
+# isort has no way to infer it and files it under third-party beside pytest.
+known-first-party = ["experience_api", "scripts", "tests"]
+
+# ---------------------------------------------------------------------------
+# Editors default to the system interpreter and then cannot resolve pytest or
+# pydantic. This points them at the project venv. Type checking is not a gate;
+# ruff is the only enforced tool.
+# ---------------------------------------------------------------------------
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+include = ["src", "tests"]
+
+# ---------------------------------------------------------------------------
+# Tests. The `e2e` marker is excluded from the default run: that tier needs a
+# running DSS. Run it deliberately with `pytest -m e2e`.
+#
+# The table must be `[tool.pytest.ini_options]`, not `[tool.pytest]` — pytest
+# silently ignores the latter.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+# --import-mode=importlib: test folders mirror src/, so sibling packages may
+# each hold a `test_mapping.py`. Under the default prepend mode those collide on
+# the module name; importlib gives each its own full path.
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--import-mode=importlib",
+    "-m",
+    "not e2e",
+    # Coverage is monitored, not gated: report the gaps every run, never fail
+    # the build on a threshold.
+    "--cov=src/experience_api",
+    "--cov-report=term-missing",
+]
+# Async tests run under pytest-asyncio in auto mode, which claims every async
+# test regardless of marker.
+asyncio_mode = "auto"
+markers = [
+    "e2e: one turn against a real DSS; needs XAPI_DSS_BASE_URL to point at one",
+]
+strict_markers = true
