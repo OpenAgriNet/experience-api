@@ -39,7 +39,7 @@ dev = [
 # ---------------------------------------------------------------------------
 [tool.ruff]
 line-length = 88
-src = ["src", "tests", "scripts"]
+src = ["src", "tests"]
 target-version = "py313"
 # Docs contain illustrative Python in fenced blocks whose alignment is
 # deliberate. Formatting them rewrites the prose's meaning, so they are excluded.
@@ -54,11 +54,6 @@ select = [
     "UP",  # pyupgrade
     "B",   # flake8-bugbear
 ]
-
-[tool.ruff.lint.isort]
-# `scripts/` is ours but is not packaged (only `src/experience_api` ships), so
-# isort has no way to infer it and files it under third-party beside pytest.
-known-first-party = ["experience_api", "scripts", "tests"]
 
 # ---------------------------------------------------------------------------
 # Editors default to the system interpreter and then cannot resolve pytest or
@@ -80,7 +75,6 @@ include = ["src", "tests"]
 [tool.pytest.ini_options]
 minversion = "9.0"
 testpaths = ["tests"]
-pythonpath = ["."]
 # --import-mode=importlib: test folders mirror src/, so sibling packages may
 # each hold a `test_mapping.py`. Under the default prepend mode those collide on
 # the module name; importlib gives each its own full path.
@@ -99,6 +93,6 @@ addopts = [
 # test regardless of marker.
 asyncio_mode = "auto"
 markers = [
-    "e2e: one turn against a real DSS; needs XAPI_DSS_BASE_URL to point at one",
+    "e2e: one turn against a real DSS; needs a running DSS",
 ]
 strict_markers = true
