@@ -63,6 +63,10 @@ select = [
 # and `from .adapters import x` inside a feature is the easiest way to break the
 # dependency rule. tests/test_boundaries.py resolves them anyway; this stops
 # them being written.
+[tool.ruff.lint.per-file-ignores]
+# The vulture whitelist is `_.name` lines by design (see its docstring).
+"vulture_whitelist.py" = ["B018", "F821"]
+
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
@@ -111,11 +115,12 @@ strict_markers = true
 
 # ---------------------------------------------------------------------------
 # Dead code. vulture reports unused functions, classes, imports and variables,
-# at its default confidence (60%). A false positive earns a whitelist entry,
-# not a lower bar.
+# at its default confidence (60%). A false positive earns a line in
+# `vulture_whitelist.py`, not a lower bar. The whitelist is one of the paths, so
+# every name it mentions counts as used.
 # ---------------------------------------------------------------------------
 [tool.vulture]
-paths = ["src", "tests"]
+paths = ["src", "tests", "vulture_whitelist.py"]
 # FastAPI calls a decorated route; our code never names it. A router's HTTP-verb
 # decorator therefore counts as a use. Extend this when another kind of
 # decorated hook arrives (exception handlers, websockets).
