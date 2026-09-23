@@ -3,7 +3,6 @@
 # client exists.
 services:
   experience-api:
-    image: ghcr.io/openagrinet/experience-api:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
