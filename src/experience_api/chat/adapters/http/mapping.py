@@ -3,7 +3,15 @@
 from __future__ import annotations
 
 from experience_api.chat.adapters.http import schemas
-from experience_api.chat.domain import ChatTurn, Location, Message
+from experience_api.chat.domain import (
+    Answer,
+    Block,
+    ChatTurn,
+    Location,
+    Message,
+    RefusalBlock,
+    TurnIds,
+)
 
 
 def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
@@ -20,4 +28,43 @@ def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
             if location
             else None
         ),
+    )
+
+
+def to_final_answer(ids: TurnIds, answer: Answer) -> schemas.FinalAnswer:
+    error = answer.error
+    return schemas.FinalAnswer(
+        session_id=ids.session_id,
+        message_id=ids.message_id,
+        assistant_message_id=ids.assistant_message_id,
+        trace_id=ids.trace_id,
+        outcome=schemas.Outcome(
+            status=answer.outcome.status, cause=answer.outcome.cause
+        ),
+        content=[_block(block) for block in answer.content],
+        sources=[
+            schemas.Source(id=s.id, name=s.name, url=s.url) for s in answer.sources
+        ],
+        error=(
+            schemas.Error(
+                code=error.code,
+                message=error.message,
+                retryable=error.retryable,
+                retry_after_seconds=error.retry_after_seconds,
+            )
+            if error
+            else None
+        ),
+    )
+
+
+def _block(block: Block) -> schemas.TextContent | schemas.RefusalContent:
+    if isinstance(block, RefusalBlock):
+        return schemas.RefusalContent(text=block.text)
+    return schemas.TextContent(
+        text=block.text,
+        citations=[
+            schemas.Citation(source_id=c.source_id, start=c.start, end=c.end)
+            for c in block.citations
+        ],
     )

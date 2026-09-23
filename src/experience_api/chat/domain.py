@@ -31,3 +31,76 @@ class ChatTurn:
     source_language: str
     target_language: str
     location: Location | None
+
+
+# ---------------------------------------------------------------------------
+# The answer, as the DSS gives it. Its text is passed through untouched.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Citation:
+    """`start` and `end` are Unicode code-point offsets into the block's text."""
+
+    source_id: str
+    start: int
+    end: int
+
+
+@dataclass(frozen=True)
+class TextBlock:
+    text: str
+    citations: tuple[Citation, ...] = ()
+
+
+@dataclass(frozen=True)
+class RefusalBlock:
+    text: str
+
+
+Block = TextBlock | RefusalBlock
+
+
+@dataclass(frozen=True)
+class Source:
+    id: str
+    name: str
+    url: str | None = None
+
+
+@dataclass(frozen=True)
+class Outcome:
+    """`status` and `cause` are open sets, passed through as strings."""
+
+    status: str
+    cause: str | None
+
+
+@dataclass(frozen=True)
+class TurnError:
+    """A turn the DSS finished but could not answer, because something it
+    needed was down."""
+
+    code: str
+    message: str
+    retryable: bool
+    retry_after_seconds: int | None = None
+
+
+@dataclass(frozen=True)
+class Answer:
+    outcome: Outcome
+    content: tuple[Block, ...]
+    sources: tuple[Source, ...]
+    error: TurnError | None = None
+
+
+@dataclass(frozen=True)
+class TurnIds:
+    """The ids a response is filed under. `trace_id` is the DSS's name for
+    this attempt; the client shows it when something goes wrong."""
+
+    session_id: str
+    message_id: str
+    assistant_message_id: str
+    trace_id: str
