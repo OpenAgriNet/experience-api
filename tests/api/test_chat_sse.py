@@ -1,4 +1,8 @@
-"""`POST /v1/chat` with `Accept: text/event-stream` (contract §5.1)."""
+"""`POST /v1/chat` with `Accept: text/event-stream` (contract §5.1).
+
+Frames are compared byte for byte, so raw UTF-8 (`°C`) and the `sequence`
+counter are both pinned.
+"""
 
 import json
 
@@ -8,7 +12,7 @@ from fastapi import FastAPI
 
 from experience_api.app import create_app
 from experience_api.chat.adapters.dss.fake import FakeDssClient
-from tests.support.examples import ANSWERED, FOLLOW_UP
+from tests.support.examples import ANSWERED, FAKE_ANSWERED, FAKE_PIECES, FOLLOW_UP
 
 SSE = {"Accept": "text/event-stream"}
 
@@ -22,21 +26,28 @@ def app() -> FastAPI:
 
 
 def _frame(event: str, data: dict[str, object]) -> str:
-    return f"event: {event}\ndata: {json.dumps(data, separators=(',', ':'))}\n\n"
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return f"event: {event}\ndata: {payload}\n\n"
 
 
-async def test_streams_the_contract_example(running: httpx.AsyncClient) -> None:
+async def test_streams_the_fake_answer_frame_by_frame(
+    running: httpx.AsyncClient,
+) -> None:
     response = await running.post("/v1/chat", json=FOLLOW_UP, headers=SSE)
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
     ids = {k: ANSWERED[k] for k in ("sessionId", "messageId", "assistantMessageId")}
+    pieces = [
+        _frame("delta", {"sequence": n, "text": text})
+        for n, text in enumerate(FAKE_PIECES, start=2)
+    ]
+    last = len(FAKE_PIECES) + 2
     assert response.text == "".join(
         [
             _frame("started", {"sequence": 1, **ids, "traceId": ANSWERED["traceId"]}),
-            _frame("delta", {"sequence": 2, "text": "Tomorrow in Nashik "}),
-            _frame("delta", {"sequence": 3, "text": "expect light rain after 3 pm."}),
-            _frame("completed", {"sequence": 4, **ANSWERED}),
+            *pieces,
+            _frame("completed", {"sequence": last, **FAKE_ANSWERED}),
         ]
     )
 

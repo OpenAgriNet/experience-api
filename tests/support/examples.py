@@ -32,3 +32,32 @@ ANSWERED: dict[str, Any] = {
     ],
     "sources": [{"id": "src_1", "name": "IMD", "url": "https://mausam.imd.gov.in/"}],
 }
+
+# What the fake DSS answers, as the client receives it. Longer than the
+# contract's one-liner, streamed in pieces that break mid-word the way a model's
+# do, and not all ASCII, so the client sees realistic text.
+FAKE_PIECES = [
+    "Tomorrow in Nashik expect light ",
+    "rain after 3 pm, with about 4 mm through the eve",
+    "ning. Temperatures stay between 22°C and 30°C, ",
+    "so field work is best done before noon. ",
+    "If you plan to spray, wait until ",
+    "the day after",
+    ", when the forecast is dry",
+    ".",
+]
+FAKE_TEXT = "".join(FAKE_PIECES)
+FAKE_ANSWERED: dict[str, Any] = {
+    **{k: ANSWERED[k] for k in ("sessionId", "messageId")},
+    "assistantMessageId": ANSWERED["assistantMessageId"],
+    "traceId": ANSWERED["traceId"],
+    "outcome": {"status": "answered", "cause": None},
+    "content": [
+        {
+            "type": "text",
+            "text": FAKE_TEXT,
+            "citations": [{"sourceId": "src_1", "start": 0, "end": len(FAKE_TEXT)}],
+        }
+    ],
+    "sources": [{"id": "src_1", "name": "IMD", "url": "https://mausam.imd.gov.in/"}],
+}

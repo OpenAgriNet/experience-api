@@ -12,7 +12,7 @@ from experience_api.chat.domain import (
     TurnIds,
 )
 from experience_api.chat.service import ChatService
-from tests.support.examples import FOLLOW_UP
+from tests.support.examples import FAKE_PIECES, FOLLOW_UP
 
 TURN = to_chat_turn(ChatRequest.model_validate(FOLLOW_UP))
 
@@ -33,14 +33,11 @@ async def test_relays_the_turn_with_its_ids() -> None:
         trace_id="tx-1",
     )
     assert events[0] == Started(ids)
-    assert events[1:3] == [
-        Delta("Tomorrow in Nashik "),
-        Delta("expect light rain after 3 pm."),
-    ]
-    assert isinstance(events[3], Completed)
-    assert events[3].ids == ids
-    assert events[3].answer.outcome.status == "answered"
-    assert len(events) == 4
+    assert events[1:-1] == [Delta(piece) for piece in FAKE_PIECES]
+    completed = events[-1]
+    assert isinstance(completed, Completed)
+    assert completed.ids == ids
+    assert completed.answer.outcome.status == "answered"
 
 
 async def test_each_turn_gets_its_own_transaction_id() -> None:

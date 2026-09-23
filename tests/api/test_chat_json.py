@@ -10,7 +10,7 @@ from fastapi import FastAPI
 
 from experience_api.app import create_app
 from experience_api.chat.adapters.dss.fake import FakeDssClient
-from tests.support.examples import ANSWERED, FOLLOW_UP
+from tests.support.examples import ANSWERED, FAKE_ANSWERED, FOLLOW_UP
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ async def test_answers_with_one_final_answer(
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == ANSWERED
+    assert response.json() == FAKE_ANSWERED
 
 
 @pytest.mark.parametrize(

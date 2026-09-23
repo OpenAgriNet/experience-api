@@ -2,7 +2,7 @@
 
 It lets the API run with no DSS behind it: for tests, and for the web client to
 try the real API. It ignores what the turn asks and plays the same answer every
-time, the one in the contract's examples.
+time: a short weather answer shaped like the contract's example.
 """
 
 from __future__ import annotations
@@ -23,14 +23,27 @@ from experience_api.chat.domain import (
     TextBlock,
 )
 
-# Contract §5.1 and §5.2.
-_ANSWERED_DELTAS = ("Tomorrow in Nashik ", "expect light rain after 3 pm.")
+# A few sentences, streamed in pieces that break mid-word the way a model's do,
+# and not all ASCII, so the client sees realistic text. Same shape as the
+# contract's §5.2 example, longer.
+_ANSWERED_DELTAS = (
+    "Tomorrow in Nashik expect light ",
+    "rain after 3 pm, with about 4 mm through the eve",
+    "ning. Temperatures stay between 22°C and 30°C, ",
+    "so field work is best done before noon. ",
+    "If you plan to spray, wait until ",
+    "the day after",
+    ", when the forecast is dry",
+    ".",
+)
+_ANSWERED_TEXT = "".join(_ANSWERED_DELTAS)
 _ANSWERED = Answer(
     outcome=Outcome(status="answered", cause=None),
     content=(
         TextBlock(
-            text="".join(_ANSWERED_DELTAS),
-            citations=(Citation(source_id="src_1", start=0, end=48),),
+            text=_ANSWERED_TEXT,
+            # The whole block cites the one source; offsets are code points.
+            citations=(Citation(source_id="src_1", start=0, end=len(_ANSWERED_TEXT)),),
         ),
     ),
     sources=(Source(id="src_1", name="IMD", url="https://mausam.imd.gov.in/"),),
