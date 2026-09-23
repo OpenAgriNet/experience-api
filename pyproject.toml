@@ -33,6 +33,7 @@ dev = [
     # Coverage is reported on every run (report-only, no gate) so regressions
     # are visible without blocking a merge — see addopts below.
     "pytest-cov>=7.1.0",
+    "pytest-httpserver>=1.1.5",
     "ruff>=0.16.4",
     "vulture>=2.14",
 ]
