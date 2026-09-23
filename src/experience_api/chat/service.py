@@ -67,6 +67,8 @@ async def _relay(
         async for event in stream:
             if isinstance(event, DssDelta):
                 yield Delta(event.text)
+            # TODO(phase 4): a stream that ends before DssFinished must end
+            # with an upstream_error, not silently.
             elif isinstance(event, DssFinished):
                 yield Completed(ids, event.answer)
                 return

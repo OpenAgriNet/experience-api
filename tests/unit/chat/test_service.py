@@ -3,7 +3,14 @@
 from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.adapters.http.mapping import to_chat_turn
 from experience_api.chat.adapters.http.schemas import ChatRequest
-from experience_api.chat.domain import Completed, Delta, Started, TurnIds
+from experience_api.chat.domain import (
+    Completed,
+    Delta,
+    DssDelta,
+    DssStarted,
+    Started,
+    TurnIds,
+)
 from experience_api.chat.service import ChatService
 from tests.support.examples import FOLLOW_UP
 
@@ -45,3 +52,20 @@ async def test_each_turn_gets_its_own_transaction_id() -> None:
 
     assert isinstance(first, Started) and isinstance(second, Started)
     assert (first.ids.trace_id, second.ids.trace_id) == ("tx-1", "tx-2")
+
+
+class _Broken(FakeDssClient):
+    """A DSS stream that starts, sends one piece, then stops with no answer."""
+
+    async def stream_turn(self, turn, *, transaction_id):  # type: ignore[override]
+        yield DssStarted(assistant_message_id="a", trace_id=transaction_id)
+        yield DssDelta("half an ans")
+
+
+async def test_a_stream_with_no_answer_ends_without_one_for_now() -> None:
+    # Pins today's gap: no terminal event reaches the client. The client treats
+    # a stream that closes this way as `upstream_error` (contract §5.1), but the
+    # API should say so itself. Phase 4 replaces this with that error.
+    events = [e async for e in await ChatService(_Broken(), new_id=str).open(TURN)]
+
+    assert [type(e) for e in events] == [Started, Delta]
