@@ -11,3 +11,5 @@ All notable changes to this project are recorded here, in the format of
 - `create_app()`, the composition root.
 - `GET /healthz`, for Docker and the front proxy.
 - A test that enforces the architecture's dependency rule.
+- ADR-0001, the architecture; the API contract, now owned here.
+- `CLAUDE.md` and `CONVENTIONS.md`.

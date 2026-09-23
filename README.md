@@ -42,3 +42,10 @@ commit; the test suite runs before every push. CI runs the same checks, so
 ```bash
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
+
+## Docs
+
+- [`docs/api-contracts/api-contract.md`](./docs/api-contracts/api-contract.md): the contract the web client builds against
+- [`docs/ADR/`](./docs/ADR): accepted decisions; ADR-0001 is the architecture
+- [`CLAUDE.md`](./CLAUDE.md): layout, stack, test tiers
+- [`CONVENTIONS.md`](./CONVENTIONS.md): naming, commits, PRs
