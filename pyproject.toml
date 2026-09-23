@@ -34,6 +34,7 @@ dev = [
     # are visible without blocking a merge — see addopts below.
     "pytest-cov>=7.1.0",
     "ruff>=0.16.4",
+    "vulture>=2.14",
 ]
 
 # ---------------------------------------------------------------------------
@@ -107,3 +108,15 @@ markers = [
     "e2e: one turn against a real DSS; needs a running DSS",
 ]
 strict_markers = true
+
+# ---------------------------------------------------------------------------
+# Dead code. vulture reports unused functions, classes, imports and variables,
+# at its default confidence (60%). A false positive earns a whitelist entry,
+# not a lower bar.
+# ---------------------------------------------------------------------------
+[tool.vulture]
+paths = ["src", "tests"]
+# FastAPI calls a decorated route; our code never names it. A router's HTTP-verb
+# decorator therefore counts as a use. Extend this when another kind of
+# decorated hook arrives (exception handlers, websockets).
+ignore_decorators = ["@*.get", "@*.post", "@*.put", "@*.patch", "@*.delete"]

@@ -34,6 +34,13 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # Dead code on every commit, whatever changed, for the same reason.
+      - id: vulture
+        name: vulture
+        entry: uv run vulture
+        language: system
+        pass_filenames: false
+        always_run: true
       # The full test suite before code leaves the machine (CONVENTIONS.md).
       - id: pytest
         name: pytest

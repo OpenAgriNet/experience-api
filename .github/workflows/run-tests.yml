@@ -32,6 +32,9 @@ jobs:
       - name: Type check
         run: uv run pyright
 
+      - name: Dead code
+        run: uv run vulture
+
       # The e2e tier needs a running DSS; the `e2e` marker keeps it out of the
       # default run (pyproject.toml).
       - name: Test
