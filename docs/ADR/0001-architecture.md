@@ -15,53 +15,47 @@ agreed are marked *(amended)* and listed in §12.
 ## 1. The decision
 
 **Python + FastAPI. Features at the top, ports and adapters inside each
-feature.** Same tools as the DSS — uv, ruff, pytest, pydantic-settings, httpx
-— so people move between the two repos without relearning anything.
+feature.** Tooling: uv, ruff, pyright, vulture, pytest, pydantic-settings,
+httpx.
 
 Today the API has one feature, chat: check a request, reshape it for the DSS,
 reshape the DSS's stream on the way back. Later it will hold persistent chat
-sessions, sign-in, and features not yet named. The DSS is one route doing one
-deep job, so it groups code by layer. This API will grow **wider**, so it
-groups code by feature, and each feature keeps its own layers inside.
+sessions, sign-in, and features not yet named. The API will grow **wider**,
+not deeper, so it groups code by feature, and each feature keeps its own
+layers inside.
 
 ---
 
-## 2. Onion, hexagonal, and this layout
+## 2. Layers inside a feature
 
-Onion and hexagonal are the same rule: **dependencies point inward, and the
-middle knows nothing about HTTP, databases or other services.** Only the names
-differ. This layout applies that rule once per feature.
+**Dependencies point inward.** The middle of a feature knows nothing about
+HTTP, JSON or the services it calls.
 
-| Onion | Hexagonal (DSS naming) | Here, per feature |
+| Layer | File | Holds |
 |---|---|---|
-| Routes / controllers | Inbound adapter | `chat/adapters/http/` |
-| Application service | Application service | `chat/service.py` — `ChatService` |
-| Domain model | Core models | `chat/domain.py` |
-| Domain service | Core service | none yet — chat has no domain rules |
-| Repository interface | Port | `chat/ports.py` — `DssClient` |
-| Repository implementation | Outbound adapter | `chat/adapters/dss/` — the HTTP client and a fake |
+| Inbound adapter | `chat/adapters/http/` | routes, wire schemas, status codes |
+| Service | `chat/service.py` — `ChatService` | the feature's rules |
+| Domain | `chat/domain.py` | plain types and errors |
+| Port | `chat/ports.py` — `DssClient` | what the feature needs from outside, in its own terms |
+| Outbound adapter | `chat/adapters/dss/` | the HTTP client and a fake, each fulfilling the port |
 
-The one real difference between onion and hexagonal: hexagonal counts the
-inbound side as an adapter too. The service does not know it is being called
-over HTTP.
+The service does not know it is called over HTTP.
 
 **A feature owns its ports.** `chat/ports.py` says what chat needs from the
-outside, in chat's terms. Adapters fulfil those ports. Nothing outside the
-feature defines what chat depends on.
+outside. Adapters fulfil those ports. Nothing outside the feature defines what
+chat depends on.
 
 ---
 
-## 3. What we take from the DSS, what we change
+## 3. Choices that shape the code
 
-| DSS has | Here | Why |
-|---|---|---|
-| Top-level `adapters/`, `ports/`, `core/` | **Changed** — the same three, inside each feature | The API grows by features, not by layers |
-| `entrypoint/app.py` + `composition.py` | **Merged** into one `app.py` | `create_app()` + `lifespan` is the composition root (§5.1) |
-| A route factory: raw `Request`, `add_api_route`, hand-written `openapi_extra` | **Dropped** — a plain `@router.post` with a typed body and `Depends` | The DSS needs raw bytes for gzip and a size cap; we don't. FastAPI then writes the OpenAPI for us |
-| Wire models in one `schema.py`, camelCase only there | **Kept**, per adapter | The domain stays snake_case and wire-agnostic |
-| `extra="forbid"` on inbound models | **Kept** | Contract §4: unknown fields → `422` |
-| `test_core_isolation.py` | **Kept**, per feature | Enforces the dependency rule (§8) |
-| `orchestration/` (Pydantic AI), config primitives | **Dropped** | No LLM, no agents; settings are a handful of env vars |
+| Choice | Why |
+|---|---|
+| Wiring in one `app.py`: `create_app()` plus `lifespan` | The app is small; the wiring and the app are the same thing (§5.1) |
+| A plain `@router.post` with a typed body and `Depends`. No route factories, no raw `Request` | FastAPI validates the body and writes the OpenAPI document |
+| Wire models in each adapter's `schemas.py`, camelCase only there | The domain stays snake_case and free of wire names |
+| `extra="forbid"` on inbound models | Contract §4: unknown fields are a `422` |
+| The dependency rule as a test, `tests/test_boundaries.py` | Folders no longer show the layers, so a test has to (§8) |
 
 ---
 
@@ -74,8 +68,8 @@ experience-api/
 ├── Dockerfile
 ├── docker-compose.yml          # the API, in fake-DSS mode by default (§7)
 ├── README.md
-├── CLAUDE.md                   # same shape as the DSS's
-├── CONVENTIONS.md              # copied from the DSS, names changed
+├── CLAUDE.md                   # layout, stack, test tiers
+├── CONVENTIONS.md              # naming, commits, PRs
 ├── docs/
 │   ├── ADR/
 │   │   └── 0001-architecture.md        # this doc
@@ -274,7 +268,7 @@ class DssClient(Protocol):
 
 `DssEvent` is a small closed set in `chat/domain.py`: `DssStarted`,
 `DssDelta`, `DssBlockDone`, `DssFinished`. Frozen dataclasses or frozen
-pydantic models, snake_case — the same idea as the DSS's `TurnEvent`.
+pydantic models, snake_case.
 
 ### 5.3 Errors
 
@@ -350,8 +344,8 @@ logs is the sign one was missed.
 models (`ChatRequest`) use `extra="forbid"`, as contract §4 requires. The
 models for **DSS responses** (`chat/adapters/dss/schemas.py`) use
 `extra="ignore"`, and unknown event names and content types are skipped. The
-DSS contract lets any `/v1` release add fields and variants; copying the DSS's
-own `forbid` here would turn its first additive release into an outage.
+DSS contract lets any `/v1` release add fields and variants, so `forbid` here
+would turn its first additive release into an outage.
 
 ### 5.6 Client disconnects
 
@@ -359,7 +353,7 @@ When the browser goes away, Starlette cancels the response generator. The
 generator holds the DSS stream in `async with` (or `aclosing`), so
 cancellation closes the httpx response, which drops the DSS connection, and the
 DSS stops the turn. Never catch `CancelledError` or `BaseException` in the
-stream path — the DSS router makes the same point in its `_frames`. A test in
+stream path. A test in
 `api/`: open a stream, disconnect after the first `delta`, assert the
 fake DSS saw its stream closed.
 
@@ -374,7 +368,7 @@ fake DSS saw its stream closed.
 
 ## 6. Settings
 
-`settings.py`, one `Settings` class, env prefix `EXPERIENCE_API_` (the DSS uses `DSS_`) *(amended from `EXPERIENCE_API_`)*. Each setting arrives with the first code that reads it.
+`settings.py`, one `Settings` class, env prefix `EXPERIENCE_API_` *(amended from `XAPI_`)*. Each setting arrives with the first code that reads it.
 A feature with many settings can later get its own nested settings class.
 
 | Env var | Default | Contract |
