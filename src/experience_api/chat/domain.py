@@ -104,3 +104,61 @@ class TurnIds:
     message_id: str
     assistant_message_id: str
     trace_id: str
+
+
+# ---------------------------------------------------------------------------
+# What a DSS turn yields, in order: one DssStarted, any number of DssDelta, one
+# DssFinished.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class DssStarted:
+    """The DSS accepted the turn."""
+
+    assistant_message_id: str
+    trace_id: str
+
+
+@dataclass(frozen=True)
+class DssDelta:
+    """A piece of answer text, exactly as the DSS wrote it."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class DssFinished:
+    answer: Answer
+
+
+DssEvent = DssStarted | DssDelta | DssFinished
+
+
+# ---------------------------------------------------------------------------
+# What ChatService yields for the client, in order: one Started, any number of
+# Delta, one Completed.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Started:
+    ids: TurnIds
+
+
+@dataclass(frozen=True)
+class Delta:
+    """Passed through from the DSS unchanged. The API adds no separators."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class Completed:
+    """The authoritative answer. It replaces whatever the deltas built up."""
+
+    ids: TurnIds
+    answer: Answer
+
+
+ChatEvent = Started | Delta | Completed
