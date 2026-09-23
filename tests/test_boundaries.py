@@ -18,9 +18,10 @@ What each layer may import, beyond the standard library:
 - `<feature>/service.py`, `ports.py`: their own `domain` and `ports`, nothing
   else. Config reaches a service as plain constructor arguments, never as
   `Settings`, so only `app.py` reads settings.
-- `<feature>/adapters/<name>/**`: any third party; the feature's own `domain`
-  and `ports`; siblings in the same `adapters/<name>`; `shared`; and another
-  feature's package itself (`experience_api.auth`), never its insides.
+- `<feature>/adapters/<name>/**`: any third party; the feature's own `domain`,
+  `ports` and `service` (an inbound adapter calls it); siblings in the same
+  `adapters/<name>`; `shared`; and another feature's package itself
+  (`experience_api.auth`), never its insides.
 
 Imports are read from the AST, never executed. A relative import is resolved to
 its absolute name first. `from pkg import mod` counts as importing `pkg.mod`
@@ -75,7 +76,12 @@ def classify(module: tuple[str, ...], is_package: bool) -> Layer | None:
     if module[1:] in (("service",), ("ports",)):
         return Layer("service", frozenset(), (f"{feature}.domain", f"{feature}.ports"))
     if module[1] == "adapters":
-        own = [f"{feature}.domain", f"{feature}.ports", "shared.*"]
+        own = [
+            f"{feature}.domain",
+            f"{feature}.ports",
+            f"{feature}.service",
+            "shared.*",
+        ]
         if len(module) >= 3:
             own.append(f"{feature}.adapters.{module[2]}.*")
         return Layer("adapter", None, tuple(own), other_features=True)
@@ -231,6 +237,7 @@ ALLOWED = {
         "from fastapi import APIRouter\n"
         f"from {PACKAGE}.auth import current_user\n"
         f"from {PACKAGE}.chat import domain\n"
+        f"from {PACKAGE}.chat.service import ChatService\n"
         f"from {PACKAGE}.shared.errors import AppError\n"
         "from . import schemas\n"
     ),
