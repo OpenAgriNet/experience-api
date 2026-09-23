@@ -63,6 +63,3 @@ class FakeDssClient:
         for piece in _ANSWERED_DELTAS:
             yield DssDelta(piece)
         yield DssFinished(_ANSWERED)
-
-    async def aclose(self) -> None:
-        pass

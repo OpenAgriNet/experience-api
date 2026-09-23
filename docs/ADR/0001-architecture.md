@@ -203,15 +203,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        client = dss or build_dss_client(settings)  # HttpDssClient or FakeDssClient
-        app.state.chat_service = ChatService(  # plain values, never Settings
-            client,
-            accept_timeout=settings.accept_timeout_seconds,
-            turn_timeout=settings.turn_timeout_seconds,
-            new_id=new_id,
-        )
-        yield
-        await client.aclose()
+        async with AsyncExitStack() as stack:  # closes what this function built
+            client = dss or await stack.enter_async_context(build_dss_client(settings))
+            app.state.chat_service = ChatService(  # plain values, never Settings
+                client,
+                accept_timeout=settings.accept_timeout_seconds,
+                turn_timeout=settings.turn_timeout_seconds,
+                new_id=new_id,
+            )
+            yield
 
     app = FastAPI(title="Experience API", lifespan=lifespan)
     shared_errors.register(app)  # RequestValidationError → our Error body
@@ -263,7 +263,6 @@ class DssClient(Protocol):
         ChatService turns that into UpstreamError.
         """
 
-    async def aclose(self) -> None: ...
 ```
 
 `DssEvent` is a small closed set in `chat/domain.py`: `DssStarted`,
@@ -482,4 +481,5 @@ of the contract shows up at the seam. Each phase is one or two PRs.
 | Chat errors subclass `AppError` in `shared/` | Subclass `ChatError` in `chat/domain.py` | §4.1 forbids `domain.py` importing `shared/` |
 | Build order §10 | Walking skeleton first | So the client integrates early |
 | Adapters may import only their feature's `domain` and `ports` | The inbound `adapters/http/` may also import its `service` | The route in §5.1 takes a `ChatService`; calling the service is an inbound adapter's job |
+| `DssClient` has `aclose()`, called by the lifespan | The port has only `stream_turn`. `HttpDssClient` is an async context manager, entered by the lifespan | Closing a pool is lifecycle, not something chat needs. Whoever builds a client closes it |
 | Timeouts in step 5 | After `HttpDssClient`, with httpx timeouts as the interim safety net | Not needed for the first cut |

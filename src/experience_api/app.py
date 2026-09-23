@@ -44,11 +44,11 @@ def create_app(
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        # The fake DSS until the real client exists.
-        client = dss or FakeDssClient()
+        # The fake DSS until the real client exists. Whoever builds a client
+        # closes it: a test that passes one in owns it.
+        client = dss if dss is not None else FakeDssClient()
         app.state.chat_service = ChatService(client, new_id=new_id)
         yield
-        await client.aclose()
 
     app = FastAPI(title="Experience API", lifespan=lifespan)
     errors.register(app)
