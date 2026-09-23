@@ -1,8 +1,9 @@
 """`POST /v1/chat`, contract §4 and §5.
 
 `Accept` picks the answer's form: the event stream when it names
-`text/event-stream`, one JSON FinalAnswer otherwise, including when it is
-absent. The DSS call is the same either way; JSON mode drains the stream.
+`text/event-stream` with a quality above zero, one JSON FinalAnswer otherwise,
+including when it is absent. The DSS call is the same either way; JSON mode
+drains the stream.
 """
 
 from __future__ import annotations
@@ -42,8 +43,28 @@ async def chat(
 
 
 def _wants_stream(accept: str | None) -> bool:
-    offered = {part.split(";")[0].strip() for part in (accept or "").split(",")}
-    return sse.MEDIA_TYPE in offered
+    """Whether `Accept` names the event stream with a quality above zero.
+
+    Media types are case-insensitive, and `q=0` means "not acceptable". A `q`
+    that is not a number is read as 1, the default, rather than rejected.
+    """
+
+    for part in (accept or "").split(","):
+        media_type, *params = (piece.strip() for piece in part.split(";"))
+        if media_type.lower() == sse.MEDIA_TYPE and _quality(params) > 0:
+            return True
+    return False
+
+
+def _quality(params: list[str]) -> float:
+    for param in params:
+        name, _, value = param.partition("=")
+        if name.strip().lower() == "q":
+            try:
+                return float(value)
+            except ValueError:
+                return 1.0
+    return 1.0
 
 
 async def _drain(events: AsyncGenerator[ChatEvent]) -> Completed:

@@ -23,8 +23,22 @@ def app() -> FastAPI:
 
 @pytest.mark.parametrize(
     "accept",
-    [None, "application/json", "*/*", "text/html"],
-    ids=["absent", "json", "anything", "neither"],
+    [
+        None,
+        "application/json",
+        "*/*",
+        "text/html",
+        "text/event-stream;q=0",
+        "application/json, text/event-stream; q=0.0",
+    ],
+    ids=[
+        "absent",
+        "json",
+        "anything",
+        "neither",
+        "sse refused",
+        "sse refused among others",
+    ],
 )
 async def test_answers_with_one_final_answer(
     running: httpx.AsyncClient, accept: str | None
@@ -43,8 +57,14 @@ async def test_answers_with_one_final_answer(
 
 @pytest.mark.parametrize(
     "accept",
-    ["text/event-stream", "application/json, text/event-stream;q=0.9"],
-    ids=["sse", "sse among others"],
+    [
+        "text/event-stream",
+        "application/json, text/event-stream;q=0.9",
+        "TEXT/Event-Stream",
+        " text/event-stream ; q=1 ",
+        "text/event-stream;q=nonsense",
+    ],
+    ids=["sse", "sse among others", "any case", "spaces", "unreadable q"],
 )
 async def test_any_mention_of_the_event_stream_streams(
     running: httpx.AsyncClient, accept: str
