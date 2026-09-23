@@ -55,8 +55,10 @@ class Language(_WireIn):
 
 
 class Location(_WireIn):
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
+    # Strict: a JSON number only, never `true` or `"20.5"`. Finite: Python's JSON
+    # parser reads `NaN` and `Infinity`, which no coordinate can be.
+    latitude: float = Field(ge=-90, le=90, strict=True, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, strict=True, allow_inf_nan=False)
 
 
 class ChatRequest(_WireIn):

@@ -49,6 +49,7 @@ def test_the_contract_example_is_valid() -> None:
         _with("history", [{"role": "user", "text": t} for t in ("a", "b")]),
         _with("location.latitude", -90),
         _with("location.longitude", 180),
+        _with("location.latitude", 20),
     ],
     ids=[
         "empty history",
@@ -58,6 +59,7 @@ def test_the_contract_example_is_valid() -> None:
         "history need not alternate",
         "latitude at its bound",
         "longitude at its bound",
+        "latitude a whole number",
     ],
 )
 def test_allowed_variations(body: dict[str, Any]) -> None:
@@ -84,6 +86,10 @@ def test_allowed_variations(body: dict[str, Any]) -> None:
         _with("location.latitude", 90.1),
         _with("location.longitude", -180.1),
         _with("location.latitude", ...),
+        _with("location.latitude", True),
+        _with("location.latitude", "20.5"),
+        _with("location.longitude", float("nan")),
+        _with("location.longitude", float("inf")),
         _with("transactionId", "3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b"),
         _with("history.0.extra", True),
         _with("session_id", "68a3872f-3f0d-4cf6-99a3-a350132a0080"),
@@ -106,6 +112,10 @@ def test_allowed_variations(body: dict[str, Any]) -> None:
         "latitude over 90",
         "longitude under -180",
         "location without latitude",
+        "latitude a bool",
+        "latitude a string",
+        "longitude NaN",
+        "longitude infinite",
         "unknown top-level field",
         "unknown field in history",
         "snake_case key",

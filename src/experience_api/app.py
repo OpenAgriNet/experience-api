@@ -23,6 +23,7 @@ from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.adapters.http.routes import router as chat_router
 from experience_api.chat.ports import DssClient
 from experience_api.chat.service import ChatService
+from experience_api.shared import errors
 
 health = APIRouter()
 
@@ -50,6 +51,7 @@ def create_app(
         await client.aclose()
 
     app = FastAPI(title="Experience API", lifespan=lifespan)
+    errors.register(app)
     app.include_router(health)
     app.include_router(chat_router, prefix="/v1")
     return app
