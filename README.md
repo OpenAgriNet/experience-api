@@ -35,7 +35,8 @@ EXPERIENCE_API_DSS_MODE=http uv run uvicorn --factory experience_api.app:create_
 | `EXPERIENCE_API_CHANNEL` | `web` | Sent to the DSS as the channel |
 | `EXPERIENCE_API_MAX_CHARACTERS` | `1200` | The longest answer to ask the DSS for |
 
-A bad value stops the API from starting. Errors from the DSS itself (it being
+A bad mode, channel or length stops the API from starting; a wrong DSS URL
+fails the first turn, like a DSS that is down. Errors from the DSS itself (it being
 down, busy, or refusing the request) come back as a plain `500` for now.
 
 ```bash

@@ -1,7 +1,8 @@
 """Configuration, from `EXPERIENCE_API_*` environment variables.
 
-Read only by `app.py`, which hands services plain values. A bad value stops the
-app from starting rather than failing its first request.
+Read only by `app.py`, which hands services plain values. A bad mode, channel
+or length stops the app from starting. The DSS URL is not checked here: a wrong
+one fails like an unreachable DSS, on the first turn.
 """
 
 from __future__ import annotations
