@@ -1,0 +1,56 @@
+name: CI
+
+# One workflow, one job graph:
+#
+#   check ──→ image   (main and release tags only)
+#
+# A pull request runs check alone. The image is built and published only once
+# the code on main, or a release tag, has passed every check.
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Every gate pre-commit runs, again, since hooks can be skipped.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      # --locked fails if uv.lock disagrees with pyproject.toml, so a dependency
+      # added without its lockfile fails here rather than resolving afresh.
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run pyright
+
+      - name: Dead code
+        run: uv run vulture
+
+      # The e2e tier needs a running DSS; the `e2e` marker keeps it out of the
+      # default run (pyproject.toml). Coverage is printed, not gated.
+      - name: Test
+        run: uv run pytest
