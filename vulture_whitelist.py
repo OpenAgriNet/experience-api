@@ -9,3 +9,11 @@ To every other tool this file is a useless expression on an undefined name, by
 design. Ruff ignores B018 and F821 here, and the file sits outside pyright's
 `include`.
 """
+
+# Fields of the DSS request, set by keyword and serialized onto the wire. Our
+# code never reads them back.
+_.timestamp
+_.coordinates
+_.user_id
+_.input
+_.user_context
