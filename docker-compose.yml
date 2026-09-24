@@ -1,11 +1,20 @@
 # Run: docker compose up --build
-# The API on http://localhost:8078, answered by the fake DSS until the real
-# client exists.
+# The API on http://localhost:8078, answered by the fake DSS. For a real one:
+#   EXPERIENCE_API_DSS_MODE=http docker compose up --build
 services:
   experience-api:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      EXPERIENCE_API_DSS_MODE: ${EXPERIENCE_API_DSS_MODE:-fake}
+      # Default: a DSS on this machine's port 8077, reached from the container.
+      EXPERIENCE_API_DSS_BASE_URL: ${EXPERIENCE_API_DSS_BASE_URL:-http://host.docker.internal:8077}
+      EXPERIENCE_API_CHANNEL: ${EXPERIENCE_API_CHANNEL:-web}
+      EXPERIENCE_API_MAX_CHARACTERS: ${EXPERIENCE_API_MAX_CHARACTERS:-1200}
+    extra_hosts:
+      # Makes host.docker.internal resolve on Linux engines too.
+      - "host.docker.internal:host-gateway"
     ports:
       # Localhost only. In a deployment the front proxy is the way in.
       - "127.0.0.1:${EXPERIENCE_API_HOST_PORT:-8078}:8078"

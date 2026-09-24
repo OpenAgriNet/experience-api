@@ -16,8 +16,12 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Recorded DSS streams are kept byte for byte: an SSE stream ends with a
+      # blank line, and trimming it would drop the last frame.
       - id: trailing-whitespace
+        exclude: ^tests/support/dss/
       - id: end-of-file-fixer
+        exclude: ^tests/support/dss/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict

@@ -61,3 +61,50 @@ FAKE_ANSWERED: dict[str, Any] = {
     ],
     "sources": [{"id": "src_1", "name": "IMD", "url": "https://mausam.imd.gov.in/"}],
 }
+
+# Contract §7: what the API sends the DSS for FOLLOW_UP.
+DSS_REQUEST: dict[str, Any] = {
+    "context": {
+        "id": "api.dss.turn",
+        "timestamp": "2026-09-23T08:00:00Z",
+        "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+        "transactionId": "3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b",
+        "messageId": "1ab38d6c-6fdb-4849-8ea1-da5e80a8687c",
+    },
+    "message": {
+        "input": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "What is the weather today at my location?",
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Nashik is clear today, 31°C, no rain expected.",
+                    }
+                ],
+            },
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "And what about tomorrow?"}],
+            },
+        ],
+        "attributes": {
+            "channel": "web",
+            "sourceLanguage": "en",
+            "targetLanguage": "en",
+            "location": {
+                "geometry": {"type": "Point", "coordinates": [73.7898, 20.0059]}
+            },
+            "response": {"maxCharacters": 1200},
+        },
+        "userContext": [{"type": "identity", "userId": "anonymous"}],
+    },
+}

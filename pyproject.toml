@@ -12,6 +12,7 @@ dependencies = [
     # for prod and another for tests.
     "httpx>=0.28.1",
     "pydantic-settings>=2.5.0",
+    "httpx-sse>=0.4.3",
 ]
 
 [build-system]
@@ -33,6 +34,7 @@ dev = [
     # Coverage is reported on every run (report-only, no gate) so regressions
     # are visible without blocking a merge — see addopts below.
     "pytest-cov>=7.1.0",
+    "pytest-httpserver>=1.1.5",
     "ruff>=0.16.4",
     "vulture>=2.14",
 ]
@@ -137,5 +139,5 @@ ignore_decorators = [
     # pydantic calls these while serializing.
     "@model_serializer",
 ]
-# Read by pydantic, never by our code.
+# pydantic's config hook, read by pydantic, never by our code.
 ignore_names = ["model_config"]

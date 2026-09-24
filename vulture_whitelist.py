@@ -10,11 +10,10 @@ design. Ruff ignores B018 and F821 here, and the file sits outside pyright's
 `include`.
 """
 
-# ChatTurn fields read only by the DSS request mapping, which arrives with
-# HttpDssClient. Remove these lines then.
-_.source_language
-_.target_language
-
-# The `type` discriminator on wire content models: pydantic writes it to the
-# wire; our code never reads it by name.
-_.type
+# Fields of the DSS request, set by keyword and serialized onto the wire. Our
+# code never reads them back.
+_.timestamp
+_.coordinates
+_.user_id
+_.input
+_.user_context

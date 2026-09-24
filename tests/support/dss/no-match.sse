@@ -1,0 +1,6 @@
+event: turn.created
+data: {"context":{"id":"api.dss.turn","version":"v1.0.0","timestamp":"2026-09-23T19:51:52.622320Z","messageId":"1ab38d6c-6fdb-4849-8ea1-da5e80a8687c","sessionId":"68a3872f-3f0d-4cf6-99a3-a350132a0080","traceId":"3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b","resMessageId":"cc8a0af4525a4a43890f12b91baeeb9c","transactionId":"3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b","sequenceNumber":1},"message":{"content":[],"sources":[]}}
+
+event: turn.completed
+data: {"context":{"id":"api.dss.turn","version":"v1.0.0","timestamp":"2026-09-23T19:51:52.654372Z","messageId":"1ab38d6c-6fdb-4849-8ea1-da5e80a8687c","sessionId":"68a3872f-3f0d-4cf6-99a3-a350132a0080","traceId":"3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b","resMessageId":"cc8a0af4525a4a43890f12b91baeeb9c","transactionId":"3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b","sequenceNumber":2},"message":{"outcome":{"status":"no_match","confidence":88,"cause":null},"content":[{"type":"text","text":"I could not find a way to help with that. I can assist with agriculture and livestock questions.","annotations":[]}],"sources":[]}}
+

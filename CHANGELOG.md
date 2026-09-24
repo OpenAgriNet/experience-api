@@ -7,6 +7,7 @@ All notable changes to this project are recorded here, in the format of
 ## [Unreleased]
 
 ### Added
+- `EXPERIENCE_API_DSS_MODE=http` calls the real DSS: the §7 request, its event stream read leniently.
 - A Dockerfile and a compose file that run the API with a healthcheck.
 - `POST /v1/chat`: SSE or JSON by `Accept`, answered by a fake DSS for now.
 - The repo skeleton: uv, ruff, pyright, vulture, pytest, pre-commit and CI.
