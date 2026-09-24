@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 
 import pytest
+from httpx_sse import SSEError
 from pytest_httpserver import HTTPServer
 from werkzeug import Request
 
@@ -69,3 +70,16 @@ async def test_the_connection_pool_closes_with_the_client(
 
     with pytest.raises(RuntimeError, match="closed"):
         [e async for e in dss.stream_turn(TURN, transaction_id="tx-1")]
+
+
+async def test_a_reply_that_is_not_an_event_stream_fails(
+    httpserver: HTTPServer,
+) -> None:
+    # A proxy's JSON error page with a 200 must not read as an empty turn.
+    httpserver.expect_request("/v1/turns", method="POST").respond_with_json(
+        {"ok": True}
+    )
+
+    async with _client(httpserver) as dss:
+        with pytest.raises(SSEError, match="text/event-stream"):
+            [e async for e in dss.stream_turn(TURN, transaction_id="tx-1")]
