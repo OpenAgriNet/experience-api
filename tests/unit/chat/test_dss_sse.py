@@ -60,3 +60,22 @@ async def test_a_frame_with_no_data_is_not_a_frame() -> None:
 
 async def test_an_unfinished_last_frame_is_dropped() -> None:
     assert await _frames([b"event: x\ndata: y\n"]) == []
+
+
+async def test_a_leading_byte_order_mark_is_dropped() -> None:
+    # Left in, it would rename the first field and lose the first event's name.
+    bom = "﻿".encode()
+
+    assert await _frames([bom + TWO_FRAMES]) == await _frames([TWO_FRAMES])
+    assert await _frames([bom[:1], bom[1:] + TWO_FRAMES]) == await _frames([TWO_FRAMES])
+
+
+async def test_only_the_first_byte_order_mark_is_dropped() -> None:
+    raw = "﻿data: ﻿x\n\n".encode()
+
+    assert await _frames([raw]) == [Frame("message", "﻿x")]
+
+
+async def test_invalid_utf8_fails_loudly() -> None:
+    with pytest.raises(UnicodeDecodeError):
+        await _frames([b"data: \xff\n\n"])

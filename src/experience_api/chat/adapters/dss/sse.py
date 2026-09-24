@@ -7,6 +7,11 @@ stream end.
 
 Bytes arrive in whatever chunks the network gives, which can split a line, a
 CRLF or a multi-byte character. Nothing here depends on where the splits fall.
+A byte-order mark at the start is dropped.
+
+One deliberate departure from the spec: invalid UTF-8 raises
+`UnicodeDecodeError` rather than being replaced with U+FFFD. A turn that fails
+loudly beats an answer shown to a farmer with garbled characters in it.
 """
 
 from __future__ import annotations
@@ -29,8 +34,13 @@ async def parse(chunks: AsyncIterable[bytes]) -> AsyncIterator[Frame]:
     decoder = codecs.getincrementaldecoder("utf-8")()
     pending = _Pending()
     buffer = ""
+    started = False
     async for chunk in chunks:
-        buffer += decoder.decode(chunk)
+        text = decoder.decode(chunk)
+        if not started and text:
+            # One byte-order mark at the very start is not content (spec).
+            text, started = text.removeprefix("\ufeff"), True
+        buffer += text
         lines, buffer = _complete_lines(buffer, final=False)
         for frame in pending.feed(lines):
             yield frame
