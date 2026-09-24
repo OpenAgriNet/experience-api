@@ -10,7 +10,6 @@ import logging
 import pytest
 
 from experience_api.chat.adapters.dss.mapping import DssProtocolError, to_dss_events
-from experience_api.chat.adapters.dss.sse import Frame
 from experience_api.chat.domain import (
     Answer,
     Citation,
@@ -34,7 +33,7 @@ def _events(raw: bytes) -> list[DssEvent]:
         if not chunk:
             continue
         name, data = (line.split(": ", 1)[1] for line in chunk.split("\n"))
-        events += to_dss_events(Frame(name, data))
+        events += to_dss_events(name, data)
     return events
 
 
@@ -99,7 +98,7 @@ def test_unknown_fields_are_ignored() -> None:
     data = json.loads(raw.decode().split("data: ", 1)[1])
     data["context"]["region"] = "west"
 
-    assert to_dss_events(Frame("turn.created", json.dumps(data))) == [
+    assert to_dss_events("turn.created", json.dumps(data)) == [
         DssStarted(
             assistant_message_id=CONTEXT["resMessageId"], trace_id=CONTEXT["traceId"]
         )
@@ -110,7 +109,7 @@ def test_an_unknown_event_is_skipped_with_a_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.WARNING):
-        assert to_dss_events(Frame("turn.thinking", "{}")) == []
+        assert to_dss_events("turn.thinking", "{}") == []
 
     assert "turn.thinking" in caplog.text
 
@@ -147,7 +146,7 @@ def test_a_malformed_frame_names_the_problem_but_not_the_text() -> None:
     data = raw.decode().split("data: ", 1)[1].strip()
 
     with pytest.raises(DssProtocolError) as caught:
-        to_dss_events(Frame("turn.completed", data))
+        to_dss_events("turn.completed", data)
 
     assert "turn.completed" in str(caught.value)
     assert "name" in str(caught.value)
@@ -163,7 +162,7 @@ def test_a_malformed_frame_names_the_problem_but_not_the_text() -> None:
 )
 def test_any_malformed_frame_is_a_protocol_error(data: str) -> None:
     with pytest.raises(DssProtocolError):
-        to_dss_events(Frame("turn.created", data))
+        to_dss_events("turn.created", data)
 
 
 def test_a_terminal_frame_without_an_outcome_is_a_protocol_error() -> None:
@@ -171,4 +170,4 @@ def test_a_terminal_frame_without_an_outcome_is_a_protocol_error() -> None:
     data = raw.decode().split("data: ", 1)[1].strip()
 
     with pytest.raises(DssProtocolError, match="outcome"):
-        to_dss_events(Frame("turn.completed", data))
+        to_dss_events("turn.completed", data)

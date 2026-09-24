@@ -13,12 +13,10 @@ from datetime import UTC, datetime
 from typing import Self
 
 import httpx
+from httpx_sse import aconnect_sse
 
-from experience_api.chat.adapters.dss import sse
 from experience_api.chat.adapters.dss.mapping import to_dss_events, to_dss_request
 from experience_api.chat.domain import ChatTurn, DssEvent
-
-_SSE = "text/event-stream"
 
 # A safety net until the turn's own timers arrive: a DSS that never answers
 # cannot hold a request forever. Reading allows the whole-turn limit between
@@ -58,11 +56,11 @@ class HttpDssClient:
         )
         # Leaving this block, including when the reader stops early, closes the
         # response, which drops the connection and ends the DSS's turn.
-        async with self._http.stream(
-            "POST", "/v1/turns", json=body, headers={"Accept": _SSE}
-        ) as response:
+        # aconnect_sse asks for `text/event-stream` and parses it; reading a reply
+        # of any other type raises httpx_sse.SSEError.
+        async with aconnect_sse(self._http, "POST", "/v1/turns", json=body) as source:
             # Until DSS statuses are mapped to chat errors, any non-2xx fails.
-            response.raise_for_status()
-            async for frame in sse.parse(response.aiter_bytes()):
-                for event in to_dss_events(frame):
+            source.response.raise_for_status()
+            async for sse in source.aiter_sse():
+                for event in to_dss_events(sse.event, sse.data):
                     yield event

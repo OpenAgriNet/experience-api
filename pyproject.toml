@@ -12,6 +12,7 @@ dependencies = [
     # for prod and another for tests.
     "httpx>=0.28.1",
     "pydantic-settings>=2.5.0",
+    "httpx-sse>=0.4.3",
 ]
 
 [build-system]

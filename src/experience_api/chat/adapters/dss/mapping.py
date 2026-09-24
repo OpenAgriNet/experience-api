@@ -9,7 +9,6 @@ from typing import Any
 from pydantic import ValidationError
 
 from experience_api.chat.adapters.dss import schemas
-from experience_api.chat.adapters.dss.sse import Frame
 from experience_api.chat.domain import (
     Answer,
     Block,
@@ -106,8 +105,9 @@ _CLAIM = "claim.completed"
 _TERMINAL = frozenset({"turn.completed", "turn.failed"})
 
 
-def to_dss_events(frame: Frame) -> list[DssEvent]:
-    """The chat events one DSS frame carries: none, one, or several.
+def to_dss_events(event: str, data: str) -> list[DssEvent]:
+    """The chat events one DSS frame, `event` and its `data`, carries: none,
+    one, or several.
 
     `claim.completed` carries nothing chat needs, since the terminal frame
     repeats every block with its citations. An event name we do not know is
@@ -116,33 +116,31 @@ def to_dss_events(frame: Frame) -> list[DssEvent]:
     Raises `DssProtocolError` when a frame chat relies on is malformed.
     """
 
-    if frame.event == _CLAIM:
+    if event == _CLAIM:
         return []
-    if frame.event not in {_CREATED, _DELTA, *_TERMINAL}:
-        logger.warning("dss_event=%s skipped=unknown", frame.event)
+    if event not in {_CREATED, _DELTA, *_TERMINAL}:
+        logger.warning("dss_event=%s skipped=unknown", event)
         return []
 
     try:
-        response = schemas.TurnResponse.model_validate_json(frame.data)
+        response = schemas.TurnResponse.model_validate_json(data)
     except ValidationError as exc:
         # `from None`: the ValidationError's own message quotes the input.
-        raise DssProtocolError(
-            f"malformed {frame.event} frame: {_where(exc)}"
-        ) from None
-    if frame.event == _CREATED:
+        raise DssProtocolError(f"malformed {event} frame: {_where(exc)}") from None
+    if event == _CREATED:
         return [
             DssStarted(
                 assistant_message_id=response.context.res_message_id,
                 trace_id=response.context.trace_id,
             )
         ]
-    if frame.event == _DELTA:
+    if event == _DELTA:
         return [
             DssDelta(item.text)
             for item in response.message.content
             if item.type == "output_text_delta" and item.text is not None
         ]
-    return [DssFinished(_answer(frame.event, response.message))]
+    return [DssFinished(_answer(event, response.message))]
 
 
 def _where(exc: ValidationError) -> str:
