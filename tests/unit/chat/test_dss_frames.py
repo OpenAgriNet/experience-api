@@ -9,7 +9,7 @@ import logging
 
 import pytest
 
-from experience_api.chat.adapters.dss.mapping import to_dss_events
+from experience_api.chat.adapters.dss.mapping import DssProtocolError, to_dss_events
 from experience_api.chat.adapters.dss.sse import Frame
 from experience_api.chat.domain import (
     Answer,
@@ -129,3 +129,46 @@ def test_an_unknown_content_type_is_skipped() -> None:
 
     assert isinstance(finished, DssFinished)
     assert finished.answer.content == (TextBlock("Hi."),)
+
+
+def test_a_malformed_frame_names_the_problem_but_not_the_text() -> None:
+    # The DSS's text can echo the user's words; it must not reach a log line
+    # through an exception message.
+    secret = "my farm is at Survey No. 42"
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "answered", "cause": None},
+            "content": [{"type": "text", "text": secret}],
+            "sources": [{"id": "s", "url": secret}],
+        },
+    )
+    data = raw.decode().split("data: ", 1)[1].strip()
+
+    with pytest.raises(DssProtocolError) as caught:
+        to_dss_events(Frame("turn.completed", data))
+
+    assert "turn.completed" in str(caught.value)
+    assert "name" in str(caught.value)
+    assert secret not in str(caught.value)
+    assert caught.value.__cause__ is None
+    assert caught.value.__suppress_context__
+
+
+@pytest.mark.parametrize(
+    "data",
+    ["not json", "[]", '{"context": {}, "message": {}}'],
+    ids=["not json", "not an object", "missing ids"],
+)
+def test_any_malformed_frame_is_a_protocol_error(data: str) -> None:
+    with pytest.raises(DssProtocolError):
+        to_dss_events(Frame("turn.created", data))
+
+
+def test_a_terminal_frame_without_an_outcome_is_a_protocol_error() -> None:
+    raw = frame("turn.completed", 2, {"content": [], "sources": []})
+    data = raw.decode().split("data: ", 1)[1].strip()
+
+    with pytest.raises(DssProtocolError, match="outcome"):
+        to_dss_events(Frame("turn.completed", data))

@@ -6,6 +6,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from pydantic import ValidationError
+
 from experience_api.chat.adapters.dss import schemas
 from experience_api.chat.adapters.dss.sse import Frame
 from experience_api.chat.domain import (
@@ -26,6 +28,15 @@ from experience_api.chat.domain import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class DssProtocolError(Exception):
+    """The DSS sent a frame chat cannot read.
+
+    Its message names the frame and which fields were wrong, never their values:
+    the DSS's text can echo the user's words, and this message ends up in logs.
+    """
+
 
 # Until sign-in exists (contract §8.2 item 3).
 ANONYMOUS = "anonymous"
@@ -102,7 +113,7 @@ def to_dss_events(frame: Frame) -> list[DssEvent]:
     repeats every block with its citations. An event name we do not know is
     skipped and logged, so a new DSS event cannot break a turn.
 
-    Raises `pydantic.ValidationError` when a frame chat relies on is malformed.
+    Raises `DssProtocolError` when a frame chat relies on is malformed.
     """
 
     if frame.event == _CLAIM:
@@ -111,7 +122,13 @@ def to_dss_events(frame: Frame) -> list[DssEvent]:
         logger.warning("dss_event=%s skipped=unknown", frame.event)
         return []
 
-    response = schemas.TurnResponse.model_validate_json(frame.data)
+    try:
+        response = schemas.TurnResponse.model_validate_json(frame.data)
+    except ValidationError as exc:
+        # `from None`: the ValidationError's own message quotes the input.
+        raise DssProtocolError(
+            f"malformed {frame.event} frame: {_where(exc)}"
+        ) from None
     if frame.event == _CREATED:
         return [
             DssStarted(
@@ -125,12 +142,21 @@ def to_dss_events(frame: Frame) -> list[DssEvent]:
             for item in response.message.content
             if item.type == "output_text_delta" and item.text is not None
         ]
-    return [DssFinished(_answer(response.message))]
+    return [DssFinished(_answer(frame.event, response.message))]
 
 
-def _answer(message: schemas.ResponseMessage) -> Answer:
+def _where(exc: ValidationError) -> str:
+    """Which fields failed and how, with no values."""
+
+    return "; ".join(
+        f"{'.'.join(str(part) for part in error['loc']) or 'body'} {error['type']}"
+        for error in exc.errors(include_input=False, include_url=False)
+    )
+
+
+def _answer(event: str, message: schemas.ResponseMessage) -> Answer:
     if message.outcome is None:
-        raise ValueError("a terminal DSS frame carried no outcome")
+        raise DssProtocolError(f"malformed {event} frame: message.outcome missing")
     error = message.error
     return Answer(
         outcome=Outcome(status=message.outcome.status, cause=message.outcome.cause),
