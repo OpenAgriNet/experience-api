@@ -2,12 +2,15 @@ name: CI
 
 # One workflow, one job graph:
 #
-#   check ──→ image   (main and release tags only: build, then publish to GHCR)
+#   check ──→ image   (main, release tags and manual runs: publish to GHCR)
 #
 # A pull request runs check alone. The image is built and published only once
-# the code on main, or a release tag, has passed every check.
+# the code on main, or a release tag, has passed every check. A manual run
+# publishes the chosen branch's image too, but only main moves `latest`.
 on:
   pull_request:
+  # Run by hand from the Actions tab, on any branch or tag.
+  workflow_dispatch:
   push:
     branches: [main]
     tags:
@@ -57,8 +60,8 @@ jobs:
       - name: Test
         run: uv run pytest
 
-  # Only on main and release tags. A pull request has already had every check,
-  # and an image it will never publish would cost a build on every push.
+  # Not on pull requests: one has already had every check, and an image it will
+  # never publish would cost a build on every push.
   image:
     if: github.event_name != 'pull_request'
     needs: check
@@ -83,7 +86,9 @@ jobs:
       - name: Set image tag
         run: echo "TAG=$(echo '${{ github.ref_name }}' | tr '/' '-')" >> "$GITHUB_ENV"
 
-      # Three tags: the ref (main, v1.2.0), the exact commit, and latest.
+      # The ref (main, v1.2.0, a branch run by hand) and the exact commit. Only
+      # main also moves `latest`, so a manual run from a branch cannot replace
+      # what a deployment pulls.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -94,7 +99,7 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:${{ env.TAG }}
             ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.IMAGE }}:latest
+            ${{ github.ref == 'refs/heads/main' && format('{0}:latest', env.IMAGE) || '' }}
           # Links the package to this repository on GitHub, so it appears on the
           # repo page and inherits its access.
           labels: |

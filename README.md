@@ -60,7 +60,8 @@ reports healthy once `/healthz` answers.
 ### The published image
 
 CI publishes an image on every push to `main` and every release tag, once
-every check passes:
+every check passes. It can also be run by hand from the Actions tab, for any
+branch; only `main` moves `latest`.
 
 ```bash
 docker pull ghcr.io/openagrinet/experience-api:latest   # or :main, :v1.2.0, :<commit>
