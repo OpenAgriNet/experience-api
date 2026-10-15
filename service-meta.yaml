@@ -1,0 +1,20 @@
+schema_version: 1
+
+name: experience-api
+description: The HTTP service between the OpenAgriNet web client and the DSS
+owner: "# fill in — no owner detected"
+language: python
+framework: fastapi
+repo_type: service
+
+provides:
+  apis:
+    - type: rest
+      path: /v1/chat
+      description: One chat turn, streamed as SSE or returned as one JSON answer  # inferred — verify
+
+depends-on:
+  services:
+    - name: dss  # inferred — verify
+      protocol: rest
+      reason: Answers each chat turn over POST /v1/turns (SSE)  # inferred — verify
