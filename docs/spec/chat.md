@@ -48,8 +48,8 @@ can echo the user's words.
 | Scenario | Today | Recovery |
 |---|---|---|
 | Bad request | `422`, FastAPI's body | Client fixes it |
-| DSS down or returns an error | `500` <!-- inferred — verify --> | User retries |
-| DSS stream breaks or ends early | Stream stops, no `error` event <!-- inferred — verify --> | User retries |
+| DSS down or returns an error | `500`, plain text `Internal Server Error`; a stream never starts | User retries |
+| DSS stream breaks or ends early | Stream stops after the pieces so far, with no `error` or `completed` event. JSON: `500` | User retries |
 | Browser leaves | DSS call closed | None |
 
 ## Configuration and limits
