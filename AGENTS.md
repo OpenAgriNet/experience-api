@@ -91,3 +91,7 @@ TDD: write the failing test first. Every commit is green.
   which layer it reaches into.
 - A DSS stream that ends before `DssFinished` is not handled yet
   (`TODO(phase 4)` in `chat/service.py`).
+
+## Component specs
+
+Behaviour and guarantees per component live in `docs/spec/` (start at `docs/spec/README.md`). Before starting new work, if `docs/.agent/specs/` has story specs, run `/update-component-spec` to fold them in.
