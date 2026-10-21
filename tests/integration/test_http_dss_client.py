@@ -10,13 +10,11 @@ from werkzeug import Request
 
 from experience_api.chat.adapters.dss.client import HttpDssClient
 from experience_api.chat.adapters.dss.mapping import to_dss_request
-from experience_api.chat.adapters.http.mapping import to_chat_turn
-from experience_api.chat.adapters.http.schemas import ChatRequest
 from experience_api.chat.domain import DssDelta, DssFinished, DssStarted
 from tests.support import dss_streams
-from tests.support.examples import FOLLOW_UP
+from tests.support.examples import FOLLOW_UP_TURN
 
-TURN = to_chat_turn(ChatRequest.model_validate(FOLLOW_UP))
+TURN = FOLLOW_UP_TURN
 NOW = datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
 
 

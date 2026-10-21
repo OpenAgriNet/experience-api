@@ -16,10 +16,13 @@ from fastapi import APIRouter, Depends, Header, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from experience_api.chat.adapters.http import sse
-from experience_api.chat.adapters.http.dependencies import get_chat_service
+from experience_api.chat.adapters.http.dependencies import (
+    get_chat_service,
+    get_default_channel,
+)
 from experience_api.chat.adapters.http.mapping import to_chat_turn, to_final_answer
 from experience_api.chat.adapters.http.schemas import ChatRequest, FinalAnswer, wire
-from experience_api.chat.domain import ChatEvent, Completed
+from experience_api.chat.domain import Channel, ChatEvent, Completed
 from experience_api.chat.service import ChatService
 
 router = APIRouter()
@@ -33,9 +36,10 @@ router = APIRouter()
 async def chat(
     body: ChatRequest,
     service: Annotated[ChatService, Depends(get_chat_service)],
+    default_channel: Annotated[Channel, Depends(get_default_channel)],
     accept: Annotated[str | None, Header()] = None,
 ) -> Response:
-    events = await service.open(to_chat_turn(body))
+    events = await service.open(to_chat_turn(body, default_channel=default_channel))
     if _wants_stream(accept):
         return StreamingResponse(
             sse.frames(events), media_type=sse.MEDIA_TYPE, headers=sse.HEADERS

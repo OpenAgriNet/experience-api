@@ -34,7 +34,7 @@ def test_read_from_the_prefixed_environment(monkeypatch: pytest.MonkeyPatch) -> 
 
 @pytest.mark.parametrize(
     ("name", "value"),
-    [("DSS_MODE", "real"), ("MAX_CHARACTERS", "0"), ("CHANNEL", "email")],
+    [("DSS_MODE", "real"), ("MAX_CHARACTERS", "0")],
 )
 def test_a_bad_value_stops_the_app_from_starting(
     monkeypatch: pytest.MonkeyPatch, name: str, value: str

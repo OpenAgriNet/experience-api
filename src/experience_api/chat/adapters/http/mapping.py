@@ -21,7 +21,7 @@ from experience_api.chat.domain import (
 )
 
 
-def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
+def to_chat_turn(body: schemas.ChatRequest, *, default_channel: Channel) -> ChatTurn:
     location = body.location
     return ChatTurn(
         session_id=body.session_id,
@@ -35,7 +35,7 @@ def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
             if location
             else None
         ),
-        channel=Channel.WEB,
+        channel=body.channel if body.channel is not None else default_channel,
     )
 
 

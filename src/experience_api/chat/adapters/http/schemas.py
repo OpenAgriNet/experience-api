@@ -22,6 +22,8 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
+from experience_api.chat.domain import Channel
+
 # BCP 47, the same pattern the DSS applies.
 BCP47 = r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$"
 
@@ -76,6 +78,8 @@ class ChatRequest(_WireIn):
     history: list[HistoryItem]
     language: Language
     location: Location | None = None
+    # Missing or null: the deployment's default, filled in by the mapping.
+    channel: Channel | None = None
 
 
 # ---------------------------------------------------------------------------

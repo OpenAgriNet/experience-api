@@ -1,8 +1,9 @@
 """Configuration, from `EXPERIENCE_API_*` environment variables.
 
-Read only by `app.py`, which hands services plain values. A bad mode, channel
-or length stops the app from starting. The DSS URL is not checked here: a wrong
-one fails like an unreachable DSS, on the first turn.
+Read only by `app.py`, which hands services plain values. A bad mode or length
+stops the app from starting here; a bad channel stops it in `app.py`, which
+owns the channel enum. The DSS URL is not checked: a wrong one fails like an
+unreachable DSS, on the first turn.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     # `fake` answers every turn from memory; `http` calls the DSS.
     dss_mode: Literal["fake", "http"] = "fake"
     dss_base_url: str = "http://localhost:8077"
-    # Sent to the DSS as `attributes.channel` and `response.maxCharacters`
-    # (contract §7). The channels are the DSS's own set.
-    channel: Literal["web", "whatsapp", "voice", "sms"] = "web"
+    # The channel for a turn whose client sends none (contract §4, §7). A plain
+    # string: `app.py` converts it to the chat `Channel` enum at startup.
+    channel: str = "web"
     max_characters: int = Field(default=1200, ge=1)

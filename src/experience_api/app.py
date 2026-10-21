@@ -23,6 +23,7 @@ from fastapi import APIRouter, FastAPI
 from experience_api.chat.adapters.dss.client import HttpDssClient
 from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.adapters.http.routes import router as chat_router
+from experience_api.chat.domain import Channel
 from experience_api.chat.ports import DssClient
 from experience_api.chat.service import ChatService
 from experience_api.settings import Settings
@@ -47,6 +48,9 @@ def create_app(
     new_id: Callable[[], str] = lambda: str(uuid4()),
 ) -> FastAPI:
     settings = settings if settings is not None else Settings()
+    # Checked here, not per request: a typo stops the app instead of failing
+    # the first turn that sends no channel.
+    default_channel = Channel(settings.channel)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -55,6 +59,7 @@ def create_app(
         async with AsyncExitStack() as stack:
             client = dss if dss is not None else await _dss_client(settings, stack)
             app.state.chat_service = ChatService(client, new_id=new_id)
+            app.state.default_channel = default_channel
             yield
 
     app = FastAPI(title="Experience API", lifespan=lifespan)

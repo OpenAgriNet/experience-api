@@ -3,6 +3,8 @@ contract cannot drift apart silently."""
 
 from typing import Any
 
+from experience_api.chat.domain import Channel, ChatTurn, Location, Message
+
 # Contract §4, the follow-up request.
 FOLLOW_UP: dict[str, Any] = {
     "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
@@ -15,6 +17,21 @@ FOLLOW_UP: dict[str, Any] = {
     "language": {"source": "en", "target": "en"},
     "location": {"latitude": 20.0059, "longitude": 73.7898},
 }
+
+# The same request as a turn, with no channel sent: the default, `web`.
+FOLLOW_UP_TURN = ChatTurn(
+    session_id="68a3872f-3f0d-4cf6-99a3-a350132a0080",
+    message_id="1ab38d6c-6fdb-4849-8ea1-da5e80a8687c",
+    query="And what about tomorrow?",
+    history=(
+        Message("user", "What is the weather today at my location?"),
+        Message("assistant", "Nashik is clear today, 31°C, no rain expected."),
+    ),
+    source_language="en",
+    target_language="en",
+    location=Location(latitude=20.0059, longitude=73.7898),
+    channel=Channel.WEB,
+)
 
 # Contract §5.2, the answered FinalAnswer.
 ANSWERED: dict[str, Any] = {
