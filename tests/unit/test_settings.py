@@ -53,10 +53,14 @@ def test_a_bad_value_stops_the_app_from_starting(
         _from_env()
 
 
+@pytest.mark.parametrize("mode", ["fake", "http"])
 @pytest.mark.parametrize("value", [None, "", "   "])
 def test_a_missing_or_blank_sender_id_stops_the_app(
-    monkeypatch: pytest.MonkeyPatch, value: str | None
+    monkeypatch: pytest.MonkeyPatch, mode: str, value: str | None
 ) -> None:
+    # In every mode: the fake DSS ignores the sender id, but a deployment that
+    # forgets it must still not start.
+    monkeypatch.setenv("EXPERIENCE_API_DSS_MODE", mode)
     if value is None:
         monkeypatch.delenv("EXPERIENCE_API_SENDER_ID")
     else:
@@ -64,6 +68,23 @@ def test_a_missing_or_blank_sender_id_stops_the_app(
 
     with pytest.raises(ValidationError, match="sender_id"):
         _from_env()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        " exp-karnataka.da.gov.in",
+        "exp-karnataka.da.gov.in ",
+        "\texp-karnataka.da.gov.in\n",
+    ],
+)
+def test_a_padded_sender_id_is_trimmed(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    # A stray space is a copy-paste slip; the DSS must get the clean id.
+    monkeypatch.setenv("EXPERIENCE_API_SENDER_ID", value)
+
+    assert _from_env().sender_id == "exp-karnataka.da.gov.in"
 
 
 def test_the_sender_id_comes_from_dot_env(

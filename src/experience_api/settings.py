@@ -11,9 +11,9 @@ unreachable DSS, on the first turn.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field
+from pydantic import Field, StringConstraints
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     # The network participant this deployment serves, sent to the DSS as
     # `context.senderId` (contract §7). No default: a deployment that forgets
     # it must not start as someone else. The network registry owns its format.
-    sender_id: str = Field(pattern=r"\S")
+    # Trimmed, since a stray space is a copy-paste slip; blank after that fails.
+    sender_id: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     # `fake` answers every turn from memory; `http` calls the DSS.
     dss_mode: Literal["fake", "http"] = "fake"
     dss_base_url: str = "http://localhost:8077"
