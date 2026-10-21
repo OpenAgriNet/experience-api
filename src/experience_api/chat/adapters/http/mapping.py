@@ -8,6 +8,7 @@ from experience_api.chat.adapters.http import schemas
 from experience_api.chat.domain import (
     Answer,
     Block,
+    Channel,
     ChatEvent,
     ChatTurn,
     Completed,
@@ -34,6 +35,7 @@ def to_chat_turn(body: schemas.ChatRequest) -> ChatTurn:
             if location
             else None
         ),
+        channel=Channel.WEB,
     )
 
 

@@ -70,7 +70,6 @@ async def _dss_client(settings: Settings, stack: AsyncExitStack) -> DssClient:
     return await stack.enter_async_context(
         HttpDssClient(
             base_url=settings.dss_base_url,
-            channel=settings.channel,
             max_characters=settings.max_characters,
         )
     )

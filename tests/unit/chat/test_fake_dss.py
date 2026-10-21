@@ -2,6 +2,7 @@
 
 from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.domain import (
+    Channel,
     ChatTurn,
     Citation,
     DssDelta,
@@ -20,6 +21,7 @@ TURN = ChatTurn(
     source_language="en",
     target_language="en",
     location=None,
+    channel=Channel.WEB,
 )
 
 

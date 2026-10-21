@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Literal
 
 Role = Literal["user", "assistant"]
+
+
+class Channel(StrEnum):
+    """Where a chat comes from. The members are the channels this API accepts,
+    a subset of the DSS's own set. Adding one is a code change, because the DSS
+    shapes each answer for its channel."""
+
+    WEB = "web"
 
 
 @dataclass(frozen=True)
@@ -31,6 +40,7 @@ class ChatTurn:
     source_language: str
     target_language: str
     location: Location | None
+    channel: Channel
 
 
 # ---------------------------------------------------------------------------

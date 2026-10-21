@@ -4,7 +4,7 @@ from typing import Any
 
 from experience_api.chat.adapters.http.mapping import to_chat_turn
 from experience_api.chat.adapters.http.schemas import ChatRequest
-from experience_api.chat.domain import ChatTurn, Location, Message
+from experience_api.chat.domain import Channel, ChatTurn, Location, Message
 from tests.support.examples import FOLLOW_UP as EXAMPLE
 
 
@@ -22,6 +22,7 @@ def test_the_contract_example_becomes_a_turn() -> None:
         source_language="en",
         target_language="en",
         location=Location(latitude=20.0059, longitude=73.7898),
+        channel=Channel.WEB,
     )
 
 

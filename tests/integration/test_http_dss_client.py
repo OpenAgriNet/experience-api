@@ -23,7 +23,6 @@ NOW = datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
 def _client(server: HTTPServer) -> HttpDssClient:
     return HttpDssClient(
         base_url=server.url_for(""),
-        channel="web",
         max_characters=1200,
         clock=lambda: NOW,
     )
@@ -58,7 +57,7 @@ async def test_sends_the_contract_request(httpserver: HTTPServer) -> None:
     assert request.headers["Accept"] == "text/event-stream"
     assert request.headers["Content-Type"] == "application/json"
     assert json.loads(request.get_data()) == to_dss_request(
-        TURN, transaction_id="tx-1", now=NOW, channel="web", max_characters=1200
+        TURN, transaction_id="tx-1", now=NOW, max_characters=1200
     )
 
 
