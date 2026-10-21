@@ -86,3 +86,14 @@ def test_the_environment_wins_over_dot_env(
     monkeypatch.setitem(Settings.model_config, "env_file", env_file)
 
     assert _from_env().sender_id == "exp-from-env"
+
+
+def test_a_dot_env_key_that_is_not_a_setting_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Compose reads `EXPERIENCE_API_HOST_PORT` from the same `.env`.
+    env_file = tmp_path / ".env"
+    env_file.write_text("EXPERIENCE_API_HOST_PORT=9000\n")
+    monkeypatch.setitem(Settings.model_config, "env_file", env_file)
+
+    assert _from_env().sender_id

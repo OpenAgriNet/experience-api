@@ -18,7 +18,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="EXPERIENCE_API_", env_file=".env")
+    # `extra="ignore"`: `.env` is shared with Compose, which reads keys of its
+    # own (`EXPERIENCE_API_HOST_PORT`). Unknown environment variables were
+    # always ignored; this makes `.env` behave the same.
+    model_config = SettingsConfigDict(
+        env_prefix="EXPERIENCE_API_", env_file=".env", extra="ignore"
+    )
 
     # The network participant this deployment serves, sent to the DSS as
     # `context.senderId` (contract §7). No default: a deployment that forgets
