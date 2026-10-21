@@ -56,9 +56,23 @@ jobs:
         run: uv run vulture
 
       # The e2e tier needs a running DSS; the `e2e` marker keeps it out of the
-      # default run (pyproject.toml). Coverage is printed, not gated.
+      # default run (pyproject.toml). Coverage is printed and sent to Codecov,
+      # not gated. The XML report is written here only, not on local runs.
       - name: Test
-        run: uv run pytest
+        run: uv run pytest --cov-report=xml
+
+      # `!cancelled()`: a failing run is when the line-by-line report helps most.
+      # The job still fails; this only keeps the report.
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # Named explicitly: without it Codecov resolves the repo from the token
+          # alone, which fails with an unclear "Repository not found".
+          slug: ${{ github.repository }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
 
   # Not on pull requests: one has already had every check, and an image it will
   # never publish would cost a build on every push.

@@ -1,5 +1,8 @@
 # experience-api
 
+[![codecov](https://codecov.io/gh/OpenAgriNet/experience-api/graph/badge.svg?token=f0PYgnH6iO)](https://codecov.io/gh/OpenAgriNet/experience-api)
+[![Security](https://github.com/OpenAgriNet/experience-api/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/OpenAgriNet/experience-api/actions/workflows/security.yml)
+
 The Experience API sits between the OpenAgriNet web client and the Decision
 Support System (DSS). The client sends a chat turn; the API builds a DSS
 request, calls the DSS, and streams the answer back.
