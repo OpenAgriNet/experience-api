@@ -4,9 +4,9 @@ It is the one place that knows which concrete objects exist. Objects the app
 needs for its whole life are built in `lifespan` and kept on `app.state`. It is
 also the only reader of settings: services get plain values.
 
-`uvicorn --factory` calls it with no arguments, so it must boot with nothing
-configured: it reads `Settings` from the environment. Tests pass their own
-settings, DSS and id factory.
+`uvicorn --factory` calls it with no arguments, so it must boot with only the
+sender id configured: it reads `Settings` from the environment and `.env`.
+Tests pass their own settings, DSS and id factory.
 
 `/healthz` lives here because it belongs to the running service, not to any
 feature.
@@ -47,7 +47,9 @@ def create_app(
     dss: DssClient | None = None,
     new_id: Callable[[], str] = lambda: str(uuid4()),
 ) -> FastAPI:
-    settings = settings if settings is not None else Settings()
+    # pyright reads `sender_id` as a required argument; the environment or
+    # `.env` supplies it, and a missing one fails validation here.
+    settings = settings if settings is not None else Settings()  # pyright: ignore[reportCallIssue]
     # Checked here, not per request: a typo stops the app instead of failing
     # the first turn that sends no channel.
     default_channel = Channel(settings.channel)
@@ -75,6 +77,7 @@ async def _dss_client(settings: Settings, stack: AsyncExitStack) -> DssClient:
     return await stack.enter_async_context(
         HttpDssClient(
             base_url=settings.dss_base_url,
+            sender_id=settings.sender_id,
             max_characters=settings.max_characters,
         )
     )

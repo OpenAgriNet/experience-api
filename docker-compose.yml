@@ -7,6 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
+      # No default: Compose reads it from `.env` (copy `.env.example`).
+      EXPERIENCE_API_SENDER_ID: ${EXPERIENCE_API_SENDER_ID}
       EXPERIENCE_API_DSS_MODE: ${EXPERIENCE_API_DSS_MODE:-fake}
       # Default: a DSS on this machine's port 8077, reached from the container.
       EXPERIENCE_API_DSS_BASE_URL: ${EXPERIENCE_API_DSS_BASE_URL:-http://host.docker.internal:8077}

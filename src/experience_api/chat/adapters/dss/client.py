@@ -29,10 +29,12 @@ class HttpDssClient:
         self,
         *,
         base_url: str,
+        sender_id: str,
         max_characters: int,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._http = httpx.AsyncClient(base_url=base_url, timeout=_TIMEOUT)
+        self._sender_id = sender_id
         self._max_characters = max_characters
         self._clock = clock
 
@@ -49,6 +51,7 @@ class HttpDssClient:
             turn,
             transaction_id=transaction_id,
             now=self._clock(),
+            sender_id=self._sender_id,
             max_characters=self._max_characters,
         )
         # Leaving this block, including when the reader stops early, closes the

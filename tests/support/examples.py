@@ -18,6 +18,9 @@ FOLLOW_UP: dict[str, Any] = {
     "location": {"latitude": 20.0059, "longitude": 73.7898},
 }
 
+# Contract §7: the network participant a deployment serves.
+SENDER_ID = "exp-karnataka.da.gov.in"
+
 # The same request as a turn, with no channel sent: the default, `web`.
 FOLLOW_UP_TURN = ChatTurn(
     session_id="68a3872f-3f0d-4cf6-99a3-a350132a0080",
@@ -87,6 +90,7 @@ DSS_REQUEST: dict[str, Any] = {
         "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
         "transactionId": "3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b",
         "messageId": "1ab38d6c-6fdb-4849-8ea1-da5e80a8687c",
+        "senderId": SENDER_ID,
     },
     "message": {
         "input": [

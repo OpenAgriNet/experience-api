@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from experience_api.chat.adapters.dss.mapping import to_dss_request
 from experience_api.chat.domain import Channel
-from tests.support.examples import DSS_REQUEST, FOLLOW_UP_TURN
+from tests.support.examples import DSS_REQUEST, FOLLOW_UP_TURN, SENDER_ID
 
 TURN = FOLLOW_UP_TURN
 NOW = datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
@@ -16,6 +16,7 @@ def _request(turn=TURN) -> dict:  # noqa: ANN001
         turn,
         transaction_id="3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b",
         now=NOW,
+        sender_id=SENDER_ID,
         max_characters=1200,
     )
 
