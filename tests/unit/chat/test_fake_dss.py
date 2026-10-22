@@ -2,7 +2,6 @@
 
 from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.domain import (
-    ChatTurn,
     Citation,
     DssDelta,
     DssFinished,
@@ -10,17 +9,9 @@ from experience_api.chat.domain import (
     TextBlock,
 )
 from experience_api.chat.ports import DssClient
-from tests.support.examples import FAKE_PIECES, FAKE_TEXT
+from tests.support.examples import FAKE_PIECES, FAKE_TEXT, FOLLOW_UP_TURN
 
-TURN = ChatTurn(
-    session_id="s",
-    message_id="m",
-    query="And what about tomorrow?",
-    history=(),
-    source_language="en",
-    target_language="en",
-    location=None,
-)
+TURN = FOLLOW_UP_TURN
 
 
 async def test_starts_streams_the_pieces_then_finishes() -> None:

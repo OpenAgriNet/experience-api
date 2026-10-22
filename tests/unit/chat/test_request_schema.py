@@ -126,3 +126,21 @@ def test_allowed_variations(body: dict[str, Any]) -> None:
 def test_rejected(body: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         ChatRequest.model_validate(body)
+
+
+@pytest.mark.parametrize("value", ["voice", "WEB", ""])
+def test_a_channel_outside_the_enum_is_rejected(value: str) -> None:
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate(_with("channel", value))
+
+
+def test_a_missing_channel_is_none() -> None:
+    assert ChatRequest.model_validate(EXAMPLE).channel is None
+
+
+def test_a_null_channel_is_none() -> None:
+    assert ChatRequest.model_validate(_with("channel", None)).channel is None
+
+
+def test_web_is_a_channel() -> None:
+    assert ChatRequest.model_validate(_with("channel", "web")).channel == "web"

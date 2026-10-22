@@ -46,7 +46,7 @@ def to_dss_request(
     *,
     transaction_id: str,
     now: datetime,
-    channel: str,
+    sender_id: str,
     max_characters: int,
 ) -> dict[str, Any]:
     """The `/v1/turns` body for one turn, contract §7.
@@ -63,6 +63,7 @@ def to_dss_request(
             session_id=turn.session_id,
             transaction_id=transaction_id,
             message_id=turn.message_id,
+            sender_id=sender_id,
         ),
         message=schemas.Message(
             input=[
@@ -70,7 +71,7 @@ def to_dss_request(
                 for message in (*turn.history, Message("user", turn.query))
             ],
             attributes=schemas.Attributes(
-                channel=channel,
+                channel=turn.channel,
                 source_language=turn.source_language,
                 target_language=turn.target_language,
                 location=(

@@ -8,6 +8,18 @@ from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 
 from experience_api.app import create_app
+from experience_api.settings import Settings
+from tests.support.examples import SENDER_ID
+
+
+@pytest.fixture(autouse=True)
+def _settings_from_the_test_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never read a developer's `.env`: it could point them at a real DSS.
+    Every test runs as the contract's example sender. A test that needs `.env`
+    points `env_file` at its own file the same way."""
+
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+    monkeypatch.setenv("EXPERIENCE_API_SENDER_ID", SENDER_ID)
 
 
 @pytest.fixture

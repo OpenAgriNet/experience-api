@@ -10,20 +10,18 @@ from werkzeug import Request
 
 from experience_api.chat.adapters.dss.client import HttpDssClient
 from experience_api.chat.adapters.dss.mapping import to_dss_request
-from experience_api.chat.adapters.http.mapping import to_chat_turn
-from experience_api.chat.adapters.http.schemas import ChatRequest
 from experience_api.chat.domain import DssDelta, DssFinished, DssStarted
 from tests.support import dss_streams
-from tests.support.examples import FOLLOW_UP
+from tests.support.examples import FOLLOW_UP_TURN, SENDER_ID
 
-TURN = to_chat_turn(ChatRequest.model_validate(FOLLOW_UP))
+TURN = FOLLOW_UP_TURN
 NOW = datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
 
 
 def _client(server: HTTPServer) -> HttpDssClient:
     return HttpDssClient(
         base_url=server.url_for(""),
-        channel="web",
+        sender_id=SENDER_ID,
         max_characters=1200,
         clock=lambda: NOW,
     )
@@ -58,7 +56,7 @@ async def test_sends_the_contract_request(httpserver: HTTPServer) -> None:
     assert request.headers["Accept"] == "text/event-stream"
     assert request.headers["Content-Type"] == "application/json"
     assert json.loads(request.get_data()) == to_dss_request(
-        TURN, transaction_id="tx-1", now=NOW, channel="web", max_characters=1200
+        TURN, transaction_id="tx-1", now=NOW, sender_id=SENDER_ID, max_characters=1200
     )
 
 

@@ -1,8 +1,6 @@
 """`ChatService` opens a DSS turn and relays it as the client's events."""
 
 from experience_api.chat.adapters.dss.fake import FakeDssClient
-from experience_api.chat.adapters.http.mapping import to_chat_turn
-from experience_api.chat.adapters.http.schemas import ChatRequest
 from experience_api.chat.domain import (
     Completed,
     Delta,
@@ -12,9 +10,9 @@ from experience_api.chat.domain import (
     TurnIds,
 )
 from experience_api.chat.service import ChatService
-from tests.support.examples import FAKE_PIECES, FOLLOW_UP
+from tests.support.examples import FAKE_PIECES, FOLLOW_UP_TURN
 
-TURN = to_chat_turn(ChatRequest.model_validate(FOLLOW_UP))
+TURN = FOLLOW_UP_TURN
 
 
 def _service() -> ChatService:

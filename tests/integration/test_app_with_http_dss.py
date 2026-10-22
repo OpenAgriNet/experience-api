@@ -9,7 +9,7 @@ from pytest_httpserver import HTTPServer
 from experience_api.app import create_app
 from experience_api.settings import Settings
 from tests.support import dss_streams
-from tests.support.examples import FOLLOW_UP
+from tests.support.examples import FOLLOW_UP, SENDER_ID
 
 
 @pytest.fixture
@@ -17,7 +17,13 @@ def app(httpserver: HTTPServer) -> FastAPI:
     httpserver.expect_request("/v1/turns", method="POST").respond_with_data(
         dss_streams.ANSWERED, content_type="text/event-stream"
     )
-    return create_app(Settings(dss_mode="http", dss_base_url=httpserver.url_for("")))
+    return create_app(
+        Settings(
+            sender_id=SENDER_ID,
+            dss_mode="http",
+            dss_base_url=httpserver.url_for(""),
+        )
+    )
 
 
 async def test_a_streamed_turn(running: httpx.AsyncClient) -> None:

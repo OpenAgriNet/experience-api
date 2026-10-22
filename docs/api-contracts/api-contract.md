@@ -199,6 +199,7 @@ Example in the parked fixtures: `request/follow-up.json`
 | `location` | object | No | Omitted when the browser prompt is denied |
 | `location.latitude` | number | With `location` | −90 to 90 |
 | `location.longitude` | number | With `location` | −180 to 180 |
+| `channel` | `web` | No | Where the chat comes from. Missing or `null` → the deployment's default. Any other value → `422` |
 
 Why `query` is separate from `history`: the current message is explicit rather
 than "the last user entry". The DSS treats the last `user` message as the
@@ -207,7 +208,7 @@ question; the API builds that ordering, so the client cannot get it wrong.
 Why `latitude` / `longitude` and not GeoJSON: it is what the browser gives, and
 the `[lon, lat]` order is a classic bug. The API does the conversion once.
 
-Unknown fields are rejected (`422`), matching the DSS's own rule. So is a
+Unknown fields are rejected (`422`). So is a
 `Content-Type` other than `application/json`.
 
 **Anything the DSS would reject, the API rejects first**, with `422`. A DSS
@@ -460,7 +461,8 @@ is what the API sends for `request/follow-up.json`.
     "timestamp": "2026-09-23T08:00:00Z",
     "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
     "transactionId": "3c67dc05-6ba2-4ab4-bb7c-377e16a5ab5b",
-    "messageId": "1ab38d6c-6fdb-4849-8ea1-da5e80a8687c"
+    "messageId": "1ab38d6c-6fdb-4849-8ea1-da5e80a8687c",
+    "senderId": "exp-karnataka.da.gov.in"
   },
   "message": {
     "input": [
@@ -490,8 +492,9 @@ is what the API sends for `request/follow-up.json`.
 | `context.transactionId` | Minted by the API, one per request |
 | `context.messageId` | Client `messageId` |
 | `context.version` | Omitted. It is a DSS response field |
+| `context.senderId` | API config (`EXPERIENCE_API_SENDER_ID`): the network participant this deployment serves. Always sent |
 | `message.input` | `history` as sent, then `query` as the last `user` item. Each text becomes `[{ "type": "text", "text": … }]` |
-| `attributes.channel` | API config. `web` for this client |
+| `attributes.channel` | Client `channel`; when missing, API config (`EXPERIENCE_API_CHANNEL`) |
 | `attributes.sourceLanguage` / `targetLanguage` | Client `language.source` / `.target` |
 | `attributes.location.geometry.coordinates` | `[longitude, latitude]` — note the swap |
 | `attributes.location.region` / `.area` | Omitted, by decision (§8.1) |
@@ -594,6 +597,8 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
 | §6.1 | `400 malformed_request`, `422 invalid_request`, `404`, `405` in our shape | FastAPI's defaults in the first build | Keep the first cut thin. Decide at peer review |
 | §6.3 | Both timeouts | Deferred until after the real DSS client | Not needed for the first cut |
 | §0 | Links to the architecture doc and the fixtures | Links to ADR-0001; fixtures named, not linked | They live in another repo now |
+| §4 | No `channel`; the channel was fixed per deployment | Optional `channel`, `web` only; missing means the deployment default | One API can serve more than one channel (#192) |
+| §7 | No sender in `context` | `context.senderId` from API config | The DSS can tell network participants apart (#192) |
 
 ## 9. What changes in this client *(web client only)*
 

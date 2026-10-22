@@ -34,6 +34,7 @@ class Context(_Request):
     session_id: str
     transaction_id: str
     message_id: str
+    sender_id: str
 
 
 class TextPart(_Request):

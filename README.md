@@ -13,6 +13,7 @@ Needs [uv](https://docs.astral.sh/uv/). It installs Python 3.13 itself.
 
 ```bash
 uv sync
+cp .env.example .env    # once: a local sender id, which the API needs to start
 uv run uvicorn --factory experience_api.app:create_app --port 8078
 ```
 
@@ -33,12 +34,16 @@ EXPERIENCE_API_DSS_MODE=http uv run uvicorn --factory experience_api.app:create_
 
 | Variable | Default | What |
 |---|---|---|
+| `EXPERIENCE_API_SENDER_ID` | none, required | The network participant this deployment serves. Sent to the DSS as `senderId` |
 | `EXPERIENCE_API_DSS_MODE` | `fake` | `fake`, or `http` to call the DSS |
 | `EXPERIENCE_API_DSS_BASE_URL` | `http://localhost:8077` | Where the DSS listens |
-| `EXPERIENCE_API_CHANNEL` | `web` | Sent to the DSS as the channel |
+| `EXPERIENCE_API_CHANNEL` | `web` | The channel for a chat whose client sends none |
 | `EXPERIENCE_API_MAX_CHARACTERS` | `1200` | The longest answer to ask the DSS for |
 
-A bad mode, channel or length stops the API from starting; a wrong DSS URL
+Each can also be set in `.env`; a real environment variable wins over it.
+
+A missing sender id, or a bad mode, channel or length, stops the API from
+starting; a wrong DSS URL
 fails the first turn, like a DSS that is down. Errors from the DSS itself (it being
 down, busy, or refusing the request) come back as a plain `500` for now.
 
@@ -55,7 +60,7 @@ docker compose up --build        # add -d to run it in the background
 docker compose down
 ```
 
-Same port, same fake DSS. `EXPERIENCE_API_DSS_MODE=http docker compose up
+Same port, same fake DSS, and the sender id from `.env`. `EXPERIENCE_API_DSS_MODE=http docker compose up
 --build` calls a DSS on the host's port 8077; the other variables pass through
 too. Set `EXPERIENCE_API_HOST_PORT` to publish on another port. The container
 reports healthy once `/healthz` answers.

@@ -4,8 +4,13 @@ from __future__ import annotations
 
 from fastapi import Request
 
+from experience_api.chat.domain import Channel
 from experience_api.chat.service import ChatService
 
 
 def get_chat_service(request: Request) -> ChatService:
     return request.app.state.chat_service
+
+
+def get_default_channel(request: Request) -> Channel:
+    return request.app.state.default_channel
