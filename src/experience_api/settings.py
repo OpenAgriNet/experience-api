@@ -18,17 +18,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # `extra="ignore"`: `.env` is shared with Compose, which reads keys of its
-    # own (`EXPERIENCE_API_HOST_PORT`). Unknown environment variables were
-    # always ignored; this makes `.env` behave the same.
     model_config = SettingsConfigDict(
         env_prefix="EXPERIENCE_API_", env_file=".env", extra="ignore"
     )
 
-    # The network participant this deployment serves, sent to the DSS as
-    # `context.senderId` (contract §7). No default: a deployment that forgets
-    # it must not start as someone else. The network registry owns its format.
-    # Trimmed, since a stray space is a copy-paste slip; blank after that fails.
     sender_id: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     # `fake` answers every turn from memory; `http` calls the DSS.
     dss_mode: Literal["fake", "http"] = "fake"

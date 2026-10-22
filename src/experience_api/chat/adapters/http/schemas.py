@@ -78,7 +78,8 @@ class ChatRequest(_WireIn):
     history: list[HistoryItem]
     language: Language
     location: Location | None = None
-    # Missing or null: the deployment's default, filled in by the mapping.
+    # Both an absent key and an explicit `null` mean the deployment's default
+    # (contract §4). The mapping fills it in.
     channel: Channel | None = None
 
 
