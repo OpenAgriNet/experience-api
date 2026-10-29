@@ -10,7 +10,7 @@ would reject must never reach it.
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AfterValidator,
@@ -19,6 +19,7 @@ from pydantic import (
     Field,
     SerializerFunctionWrapHandler,
     model_serializer,
+    model_validator,
 )
 from pydantic.alias_generators import to_camel
 
@@ -71,16 +72,44 @@ class Location(_WireIn):
     longitude: float = Field(ge=-180, le=180, strict=True, allow_inf_nan=False)
 
 
+class SubmittedField(_WireIn):
+    name: Text
+    # May be empty: an optional field left blank. The DSS checks the rules.
+    value: str = Field(strict=True)
+
+
+class FormSubmission(_WireIn):
+    """A filled form sent back, contract §4.2. Only its shape is checked here."""
+
+    type: Literal["form"]
+    form_id: Text
+    # Opaque: sent back exactly as the `form` item gave it.
+    context: dict[str, Annotated[str, Field(strict=True)]]
+    submission_id: Uuid
+    fields: list[SubmittedField]
+
+
 class ChatRequest(_WireIn):
     session_id: Uuid
     message_id: Uuid
-    query: Text
+    # Exactly one of `query` and `content` (contract §4): the DSS takes one
+    # kind of message per turn.
+    query: Text | None = None
+    content: (
+        Annotated[list[FormSubmission], Field(min_length=1, max_length=1)] | None
+    ) = None
     history: list[HistoryItem]
     language: Language
     location: Location | None = None
     # Both an absent key and an explicit `null` mean the deployment's default
     # (contract §4). The mapping fills it in.
     channel: Channel | None = None
+
+    @model_validator(mode="after")
+    def _one_message(self) -> Self:
+        if (self.query is None) == (self.content is None):
+            raise ValueError("send exactly one of query and content")
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -144,6 +173,21 @@ class FormContent(_WireOut):
     fields: list[FormField]
 
 
+class FormFieldError(_WireOut):
+    name: str
+    label: str
+    error: str
+
+
+class FormErrorContent(_WireOut):
+    type: Literal["form_error"] = "form_error"
+    form_id: str
+    context: dict[str, str]
+    submission_id: str
+    # Kept when empty: `[]` means the office could not take the form.
+    fields: list[FormFieldError]
+
+
 class Source(_WireOut):
     id: str
     name: str
@@ -175,7 +219,7 @@ class FinalAnswer(_WireOut):
     assistant_message_id: str
     trace_id: str
     outcome: Outcome
-    content: list[TextContent | RefusalContent | FormContent]
+    content: list[TextContent | RefusalContent | FormContent | FormErrorContent]
     sources: list[Source]
     error: Error | None = None
 

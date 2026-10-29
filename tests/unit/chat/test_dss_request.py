@@ -4,8 +4,14 @@ from dataclasses import replace
 from datetime import UTC, datetime
 
 from experience_api.chat.adapters.dss.mapping import to_dss_request
-from experience_api.chat.domain import Channel
-from tests.support.examples import DSS_REQUEST, FOLLOW_UP_TURN, SENDER_ID
+from experience_api.chat.domain import Channel, Message
+from tests.support.examples import (
+    DSS_REQUEST,
+    FOLLOW_UP_TURN,
+    FORM_CONTEXT,
+    FORM_SENT_TURN,
+    SENDER_ID,
+)
 
 TURN = FOLLOW_UP_TURN
 NOW = datetime(2026, 9, 23, 8, 0, tzinfo=UTC)
@@ -51,3 +57,43 @@ def test_the_channel_comes_from_the_turn() -> None:
     attributes = _request(replace(TURN, channel=Channel.WEB))["message"]["attributes"]
 
     assert attributes["channel"] == "web"
+
+
+def test_a_sent_form_is_the_last_user_message() -> None:
+    turn = replace(
+        FORM_SENT_TURN,
+        history=(
+            Message("user", "I want to file a PMFBY grievance"),
+            Message("assistant", "Please fill in this form."),
+        ),
+    )
+
+    inputs = _request(turn)["message"]["input"]
+
+    assert inputs[:2] == [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "I want to file a PMFBY grievance"}],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "Please fill in this form."}],
+        },
+    ]
+    assert inputs[2] == {
+        "role": "user",
+        "content": [
+            {
+                "type": "form",
+                "formId": "f-1",
+                "context": FORM_CONTEXT,
+                "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+                "fields": [
+                    {"name": "applicantPhone", "value": "9876543210"},
+                    # An optional field left blank still goes: the DSS reads
+                    # blank as not given.
+                    {"name": "season", "value": ""},
+                ],
+            }
+        ],
+    }

@@ -20,7 +20,6 @@ def app(httpserver: HTTPServer) -> FastAPI:
     return create_app(
         Settings(
             sender_id=SENDER_ID,
-            dss_mode="http",
             dss_base_url=httpserver.url_for(""),
         )
     )

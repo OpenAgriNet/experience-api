@@ -8,9 +8,9 @@ import pytest
 from fastapi import FastAPI
 
 from experience_api.app import create_app
-from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.domain import ChatTurn, DssEvent
-from tests.support.examples import FOLLOW_UP
+from tests.support.examples import FOLLOW_UP, FORM_SENT, FORM_SENT_TURN
+from tests.support.fake_dss import FakeDssClient
 
 
 class _SpyDss(FakeDssClient):
@@ -74,3 +74,23 @@ async def test_a_web_channel_reaches_the_dss(
 
     assert response.status_code == 200
     assert [turn.channel for turn in spy.turns] == ["web"]
+
+
+async def test_a_sent_form_reaches_the_dss(
+    running: httpx.AsyncClient, spy: _SpyDss
+) -> None:
+    response = await running.post("/v1/chat", json=FORM_SENT)
+
+    assert response.status_code == 200
+    assert [turn.query for turn in spy.turns] == [FORM_SENT_TURN.query]
+
+
+async def test_a_query_beside_a_form_is_a_422_and_never_reaches_the_dss(
+    running: httpx.AsyncClient, spy: _SpyDss
+) -> None:
+    response = await running.post(
+        "/v1/chat", json=FORM_SENT | {"query": "And what about tomorrow?"}
+    )
+
+    assert response.status_code == 422
+    assert spy.turns == []

@@ -18,9 +18,12 @@ from experience_api.chat.domain import (
     DssEvent,
     DssFinished,
     DssStarted,
+    FieldError,
     FormBlock,
+    FormErrorBlock,
     FormField,
     FormOption,
+    FormSubmission,
     Message,
     Outcome,
     RefusalBlock,
@@ -55,8 +58,8 @@ def to_dss_request(
     """The `/v1/turns` body for one turn, contract §7.
 
     `now` is the API's clock, not the browser's. The history goes first, then
-    the query as the last `user` message, so the DSS finds the question where
-    it looks for it.
+    the query, a question or a filled form, as the last `user` message, so the
+    DSS finds it where it looks for it.
     """
 
     location = turn.location
@@ -69,10 +72,7 @@ def to_dss_request(
             sender_id=sender_id,
         ),
         message=schemas.Message(
-            input=[
-                _input(message)
-                for message in (*turn.history, Message("user", turn.query))
-            ],
+            input=[*(_input(message) for message in turn.history), _query(turn.query)],
             attributes=schemas.Attributes(
                 channel=turn.channel,
                 source_language=turn.source_language,
@@ -97,6 +97,25 @@ def to_dss_request(
 def _input(message: Message) -> schemas.InputMessage:
     return schemas.InputMessage(
         role=message.role, content=[schemas.TextPart(text=message.text)]
+    )
+
+
+def _query(query: str | FormSubmission) -> schemas.InputMessage:
+    if isinstance(query, str):
+        return _input(Message("user", query))
+    return schemas.InputMessage(
+        role="user",
+        content=[
+            schemas.FormPart(
+                form_id=query.form_id,
+                context=dict(query.context),
+                submission_id=query.submission_id,
+                fields=[
+                    schemas.SubmittedField(name=v.name, value=v.value)
+                    for v in query.values
+                ],
+            )
+        ],
     )
 
 
@@ -182,6 +201,8 @@ def _answer(event: str, message: schemas.ResponseMessage) -> Answer:
 def _block(item: schemas.ContentItem) -> Block | None:
     if item.type == "form":
         return _form(item)
+    if item.type == "form_error":
+        return _form_error(item)
     if item.text is None:
         return None
     if item.type == "refusal":
@@ -206,6 +227,8 @@ def _form(item: schemas.ContentItem) -> FormBlock:
     # Without its id and context the client cannot send the form back.
     if item.form_id is None or item.context is None:
         raise DssProtocolError("malformed form item: formId or context missing")
+    if not all(isinstance(f, schemas.FormField) for f in item.fields):
+        raise DssProtocolError("malformed form item: a field has no kind")
     return FormBlock(
         form_id=item.form_id,
         context=item.context,
@@ -223,5 +246,26 @@ def _form(item: schemas.ContentItem) -> FormBlock:
                 ),
             )
             for f in item.fields
+            if isinstance(f, schemas.FormField)
+        ),
+    )
+
+
+def _form_error(item: schemas.ContentItem) -> FormErrorBlock:
+    # Without these the client cannot tell which form, or which send, it is.
+    if item.form_id is None or item.context is None or item.submission_id is None:
+        raise DssProtocolError(
+            "malformed form_error item: formId, context or submissionId missing"
+        )
+    if not all(isinstance(f, schemas.FieldError) for f in item.fields):
+        raise DssProtocolError("malformed form_error item: a field has no error")
+    return FormErrorBlock(
+        form_id=item.form_id,
+        context=item.context,
+        submission_id=item.submission_id,
+        fields=tuple(
+            FieldError(name=f.name, label=f.label, error=f.error)
+            for f in item.fields
+            if isinstance(f, schemas.FieldError)
         ),
     )

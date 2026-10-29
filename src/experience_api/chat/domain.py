@@ -31,12 +31,35 @@ class Location:
 
 
 @dataclass(frozen=True)
+class FieldValue:
+    """What the farmer put in one field. Empty when they left it blank."""
+
+    name: str
+    value: str
+
+
+@dataclass(frozen=True)
+class FormSubmission:
+    """A filled form the farmer sent back. `context` goes back exactly as the
+    DSS sent it, so the DSS can find the form again. `submission_id` is new for
+    every send."""
+
+    form_id: str
+    context: Mapping[str, str]
+    submission_id: str
+    values: tuple[FieldValue, ...]
+
+
+@dataclass(frozen=True)
 class ChatTurn:
-    """One user message and the conversation before it, as the client sent it."""
+    """One user message and the conversation before it, as the client sent it.
+
+    The message is `query`: a typed question, or a filled form.
+    """
 
     session_id: str
     message_id: str
-    query: str
+    query: str | FormSubmission
     history: tuple[Message, ...]
     source_language: str
     target_language: str
@@ -99,7 +122,27 @@ class FormBlock:
     fields: tuple[FormField, ...]
 
 
-Block = TextBlock | RefusalBlock | FormBlock
+@dataclass(frozen=True)
+class FieldError:
+    """What is wrong with one field, in the user's language."""
+
+    name: str
+    label: str
+    error: str
+
+
+@dataclass(frozen=True)
+class FormErrorBlock:
+    """A sent form the DSS handed back: it is still the farmer's. `fields` names
+    what to fix, and is empty when the office could not take the form."""
+
+    form_id: str
+    context: Mapping[str, str]
+    submission_id: str
+    fields: tuple[FieldError, ...]
+
+
+Block = TextBlock | RefusalBlock | FormBlock | FormErrorBlock
 
 
 @dataclass(frozen=True)

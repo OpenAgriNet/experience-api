@@ -37,7 +37,7 @@ HTTP, JSON or the services it calls.
 | Service | `chat/service.py` — `ChatService` | the feature's rules |
 | Domain | `chat/domain.py` | plain types and errors |
 | Port | `chat/ports.py` — `DssClient` | what the feature needs from outside, in its own terms |
-| Outbound adapter | `chat/adapters/dss/` | the HTTP client and a fake, each fulfilling the port |
+| Outbound adapter | `chat/adapters/dss/` | the HTTP client, fulfilling the port. A fake fulfils it in tests *(amended)* |
 
 The service does not know it is called over HTTP.
 
@@ -66,7 +66,7 @@ experience-api/
 ├── pyproject.toml              # uv; fastapi, uvicorn, httpx, pydantic-settings
 ├── uv.lock
 ├── Dockerfile
-├── docker-compose.yml          # the API, in fake-DSS mode by default (§7)
+├── docker-compose.yml          # the API, calling the DSS
 ├── README.md
 ├── CLAUDE.md                   # layout, stack, test tiers
 ├── CONVENTIONS.md              # naming, commits, PRs
@@ -98,7 +98,6 @@ experience-api/
 │           │   └── errors.py         # exception handlers: chat errors → code + status (§6.1)
 │           └── dss/            # OUTBOUND — contract §7; implements ports.DssClient
 │               ├── client.py         # HttpDssClient: httpx stream to POST /v1/turns
-│               ├── fake.py           # FakeDssClient: canned scenarios (§7)
 │               ├── schemas.py        # the DSS wire shapes we send and read
 │               └── mapping.py        # ChatTurn → DSS request; DSS frames → domain events
 │
@@ -372,21 +371,21 @@ A feature with many settings can later get its own nested settings class.
 
 | Env var | Default | Contract |
 |---|---|---|
-| `EXPERIENCE_API_DSS_MODE` | `fake` | `http` or `fake` (§7) |
 | `EXPERIENCE_API_DSS_BASE_URL` | `http://localhost:8077` | where the DSS listens |
 | `EXPERIENCE_API_CHANNEL` | `web` | §7 `attributes.channel` |
 | `EXPERIENCE_API_MAX_CHARACTERS` | `1200` | §7 `attributes.response.maxCharacters` |
 | `EXPERIENCE_API_ACCEPT_TIMEOUT_SECONDS` | `30` | §6.3 — DSS headers and first event |
 | `EXPERIENCE_API_TURN_TIMEOUT_SECONDS` | `120` | §6.3 |
-| `EXPERIENCE_API_FAKE_SCENARIO` | `answered` | which canned scenario the fake plays (§7) |
-| `EXPERIENCE_API_FAKE_DELAY_SECONDS` | `0` | silence before the fake's first frame |
-
-The default is `fake` so the API runs with nothing else installed. A
-deployment sets `http`.
+*(Amended.)* There is no DSS mode: the running API always calls the DSS (§7).
 
 ---
 
 ## 7. The fake DSS
+
+*(Amended.)* The fake is a test double only. It lives in
+`tests/support/fake_dss.py`, and tests pass it to `create_app(dss=...)`. The
+running API always calls the real DSS, so no reply a person sees can be a
+canned one. Purposes 2 and 3 below, and the scenarios, no longer apply.
 
 `FakeDssClient` yields canned `DssEvent`s, one scenario per outcome, written
 in `fake.py` itself. It serves three purposes:
@@ -483,3 +482,4 @@ of the contract shows up at the seam. Each phase is one or two PRs.
 | Adapters may import only their feature's `domain` and `ports` | The inbound `adapters/http/` may also import its `service` | The route in §5.1 takes a `ChatService`; calling the service is an inbound adapter's job |
 | `DssClient` has `aclose()`, called by the lifespan | The port has only `stream_turn`. `HttpDssClient` is an async context manager, entered by the lifespan | Closing a pool is lifecycle, not something chat needs. Whoever builds a client closes it |
 | Timeouts in step 5 | After `HttpDssClient`, with httpx timeouts as the interim safety net | Not needed for the first cut |
+| A fake DSS mode, the default, for running the API with no DSS (§6, §7) | No mode. The fake is a test double in `tests/support/`; the app always calls the DSS | A canned reply looked like a real one. A form sent to the default API was never filed, and nothing said so |

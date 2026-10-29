@@ -14,53 +14,42 @@ def _from_env() -> Settings:
     return Settings()  # pyright: ignore[reportCallIssue]
 
 
-def test_defaults_run_against_the_fake_dss(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("DSS_MODE", "DSS_BASE_URL", "CHANNEL", "MAX_CHARACTERS"):
+def test_defaults_call_a_dss_on_this_machine(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("DSS_BASE_URL", "CHANNEL", "MAX_CHARACTERS"):
         monkeypatch.delenv(f"EXPERIENCE_API_{name}", raising=False)
 
     settings = _from_env()
 
-    assert settings.dss_mode == "fake"
     assert settings.dss_base_url == "http://localhost:8077"
     assert settings.channel == "web"
     assert settings.max_characters == 1200
 
 
 def test_read_from_the_prefixed_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("EXPERIENCE_API_DSS_MODE", "http")
     monkeypatch.setenv("EXPERIENCE_API_DSS_BASE_URL", "http://dss:8077")
     monkeypatch.setenv("EXPERIENCE_API_MAX_CHARACTERS", "600")
 
     settings = _from_env()
 
-    assert (settings.dss_mode, settings.dss_base_url, settings.max_characters) == (
-        "http",
+    assert (settings.dss_base_url, settings.max_characters) == (
         "http://dss:8077",
         600,
     )
 
 
-@pytest.mark.parametrize(
-    ("name", "value"),
-    [("DSS_MODE", "real"), ("MAX_CHARACTERS", "0")],
-)
-def test_a_bad_value_stops_the_app_from_starting(
-    monkeypatch: pytest.MonkeyPatch, name: str, value: str
+def test_a_bad_length_stops_the_app_from_starting(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv(f"EXPERIENCE_API_{name}", value)
+    monkeypatch.setenv("EXPERIENCE_API_MAX_CHARACTERS", "0")
 
     with pytest.raises(ValidationError):
         _from_env()
 
 
-@pytest.mark.parametrize("mode", ["fake", "http"])
 @pytest.mark.parametrize("value", [None, "", "   "])
 def test_a_missing_or_blank_sender_id_stops_the_app(
-    monkeypatch: pytest.MonkeyPatch, mode: str, value: str | None
+    monkeypatch: pytest.MonkeyPatch, value: str | None
 ) -> None:
-    # In every mode: the fake DSS ignores the sender id, but a deployment that
-    # forgets it must still not start.
-    monkeypatch.setenv("EXPERIENCE_API_DSS_MODE", mode)
     if value is None:
         monkeypatch.delenv("EXPERIENCE_API_SENDER_ID")
     else:

@@ -9,8 +9,8 @@ import pytest
 from fastapi import FastAPI
 
 from experience_api.app import create_app
-from experience_api.chat.adapters.dss.fake import FakeDssClient
 from tests.support.examples import ANSWERED, FAKE_ANSWERED, FOLLOW_UP
+from tests.support.fake_dss import FakeDssClient
 
 
 @pytest.fixture

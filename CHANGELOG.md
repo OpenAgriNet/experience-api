@@ -6,7 +6,11 @@ All notable changes to this project are recorded here, in the format of
 
 ## [Unreleased]
 
+### Removed
+- `EXPERIENCE_API_DSS_MODE` and the fake DSS mode. The API always calls the DSS; the fake is now a test double only.
+
 ### Added
+- A filled form sent back as `content` in place of `query`, passed to the DSS; a `form_error` item in the answer hands it back.
 - A `form` item in the answer: a form the DSS offers reaches the client instead of being dropped.
 - CI publishes the image to `ghcr.io/openagrinet/experience-api` from main and release tags.
 - `EXPERIENCE_API_DSS_MODE=http` calls the real DSS: the §7 request, its event stream read leniently.

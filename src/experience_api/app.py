@@ -21,7 +21,6 @@ from uuid import uuid4
 from fastapi import APIRouter, FastAPI
 
 from experience_api.chat.adapters.dss.client import HttpDssClient
-from experience_api.chat.adapters.dss.fake import FakeDssClient
 from experience_api.chat.adapters.http.routes import router as chat_router
 from experience_api.chat.domain import Channel
 from experience_api.chat.ports import DssClient
@@ -72,8 +71,6 @@ def create_app(
 
 
 async def _dss_client(settings: Settings, stack: AsyncExitStack) -> DssClient:
-    if settings.dss_mode == "fake":
-        return FakeDssClient()
     return await stack.enter_async_context(
         HttpDssClient(
             base_url=settings.dss_base_url,

@@ -41,8 +41,8 @@ The full shapes live in `chat/domain.py`. The words to know:
 - `GET /healthz`: the process is up. It does not probe the DSS.
 
 ## What this service depends on
-- **DSS**, `POST /v1/turns` over SSE, at `EXPERIENCE_API_DSS_BASE_URL`.
-  `EXPERIENCE_API_DSS_MODE=fake` (the default) answers from memory instead.
+- **DSS**, `POST /v1/turns` over SSE, at `EXPERIENCE_API_DSS_BASE_URL`. Always
+  the real one: the fake DSS lives in `tests/support/` and only tests use it.
 - No database, no messaging.
 
 ## Conventions
@@ -68,7 +68,7 @@ src/experience_api/
     ├── ports.py      # Protocols for what the feature needs from outside
     └── adapters/
         ├── http/     # inbound: routes, wire schemas (camelCase), mapping
-        └── <name>/   # outbound: implements a port (dss/ today, with a fake)
+        └── <name>/   # outbound: implements a port (dss/ today)
 ```
 
 ## Testing
@@ -76,8 +76,8 @@ TDD: write the failing test first. Every commit is green.
 
 | Tier | Path | What | Uses |
 |---|---|---|---|
-| Unit | `tests/unit/<feature>/` | mapping, the service, SSE framing | the fake DSS; fixed clock and ids |
-| API | `tests/api/` | the whole app through httpx's ASGI transport | the fake DSS |
+| Unit | `tests/unit/<feature>/` | mapping, the service, SSE framing | the fake DSS (`tests/support/fake_dss.py`); fixed clock and ids |
+| API | `tests/api/` | the whole app through httpx's ASGI transport | the fake DSS, passed to `create_app(dss=...)` |
 | Integration | `tests/integration/` | `HttpDssClient` against a local HTTP server | pytest-httpserver |
 | E2E | `tests/e2e/` | one turn against a real DSS | marker `e2e`, not run by default |
 | Boundaries | `tests/test_boundaries.py` | the dependency rule | the AST |
