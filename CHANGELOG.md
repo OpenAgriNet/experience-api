@@ -7,6 +7,7 @@ All notable changes to this project are recorded here, in the format of
 ## [Unreleased]
 
 ### Added
+- A `form` item in the answer: a form the DSS offers reaches the client instead of being dropped.
 - CI publishes the image to `ghcr.io/openagrinet/experience-api` from main and release tags.
 - `EXPERIENCE_API_DSS_MODE=http` calls the real DSS: the §7 request, its event stream read leniently.
 - A Dockerfile and a compose file that run the API with a healthcheck.

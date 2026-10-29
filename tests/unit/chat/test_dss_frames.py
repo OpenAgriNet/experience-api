@@ -17,6 +17,9 @@ from experience_api.chat.domain import (
     DssEvent,
     DssFinished,
     DssStarted,
+    FormBlock,
+    FormField,
+    FormOption,
     Outcome,
     RefusalBlock,
     Source,
@@ -128,6 +131,91 @@ def test_an_unknown_content_type_is_skipped() -> None:
 
     assert isinstance(finished, DssFinished)
     assert finished.answer.content == (TextBlock("Hi."),)
+
+
+def test_a_form_comes_through_whole() -> None:
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "requires_input", "cause": None},
+            "content": [
+                {"type": "text", "text": "Please fill in this form."},
+                {
+                    "type": "form",
+                    "formId": "f-1",
+                    "context": {
+                        "scheme": "PMFBY",
+                        "category": "Grievance",
+                        "action": "support",
+                    },
+                    "fields": [
+                        {
+                            "name": "applicantPhone",
+                            "label": "Phone",
+                            "kind": "text",
+                            "required": True,
+                            "pattern": "^[0-9]{10}$",
+                            "minLength": 10,
+                            "maxLength": 10,
+                        },
+                        {
+                            "name": "season",
+                            "label": "Season",
+                            "kind": "select",
+                            "required": False,
+                            "options": [{"value": "Kharif", "label": "Kharif"}],
+                        },
+                    ],
+                },
+            ],
+            "sources": [],
+        },
+    )
+    (finished,) = _events(raw)
+
+    assert isinstance(finished, DssFinished)
+    assert finished.answer.content == (
+        TextBlock("Please fill in this form."),
+        FormBlock(
+            form_id="f-1",
+            context={"scheme": "PMFBY", "category": "Grievance", "action": "support"},
+            fields=(
+                FormField(
+                    name="applicantPhone",
+                    label="Phone",
+                    kind="text",
+                    required=True,
+                    pattern="^[0-9]{10}$",
+                    min_length=10,
+                    max_length=10,
+                ),
+                FormField(
+                    name="season",
+                    label="Season",
+                    kind="select",
+                    required=False,
+                    options=(FormOption(value="Kharif", label="Kharif"),),
+                ),
+            ),
+        ),
+    )
+
+
+def test_a_form_without_its_id_is_a_protocol_error() -> None:
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "requires_input", "cause": None},
+            "content": [{"type": "form", "context": {}, "fields": []}],
+            "sources": [],
+        },
+    )
+    data = raw.decode().split("data: ", 1)[1].strip()
+
+    with pytest.raises(DssProtocolError, match="form"):
+        to_dss_events("turn.completed", data)
 
 
 def test_a_malformed_frame_names_the_problem_but_not_the_text() -> None:

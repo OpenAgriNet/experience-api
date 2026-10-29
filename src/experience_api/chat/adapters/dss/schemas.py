@@ -106,10 +106,31 @@ class Annotation(_Response):
     end_index: int | None = None
 
 
+class FormOption(_Response):
+    value: str
+    label: str
+
+
+class FormField(_Response):
+    name: str
+    label: str
+    kind: str
+    required: bool = False
+    pattern: str | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    options: list[FormOption] = []
+
+
 class ContentItem(_Response):
+    """One item of any type. `form_id`, `context` and `fields` are a `form`'s."""
+
     type: str
     text: str | None = None
     annotations: list[Annotation] = []
+    form_id: str | None = None
+    context: dict[str, str] | None = None
+    fields: list[FormField] = []
 
 
 class Outcome(_Response):

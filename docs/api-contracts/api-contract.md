@@ -315,14 +315,41 @@ Example in the parked fixtures: `response/answered.json`
 | `outcome.status` | Yes | `answered`, `partially_answered`, `rejected`, `no_match`, `requires_input`, `unavailable`. For logs; the client does not branch on it (§5.3) |
 | `outcome.cause` | Yes, may be `null` | Open set, passed through. Treated as an opaque string |
 | `content` | Yes, may be `[]` | In order. Empty only when `error` is present |
-| `content[].type` | Yes | `text` or `refusal` |
-| `content[].text` | Yes | Markdown, as today |
+| `content[].type` | Yes | `text`, `refusal` or `form` |
+| `content[].text` | `text` and `refusal` | Markdown, as today |
 | `content[].citations` | `text` only; may be `[]` | `start`/`end` are Unicode code-point offsets into `text` |
+| `content[].formId`, `context`, `fields` | `form` only | An empty form to fill in. Shape below |
 | `sources` | Yes, may be `[]` | `{ id, name, url? }`. What citations point at |
 | `error` | No | Present only when the turn failed. `Error` shape (§6) |
 
 `confidence` is dropped on purpose: nothing in the client should act on it yet.
 It is easy to add later.
+
+A `form` item asks the farmer for details, such as for a grievance:
+
+```json
+{
+  "type": "form",
+  "formId": "f-1",
+  "context": { "scheme": "PMFBY", "category": "Grievance", "action": "support" },
+  "fields": [
+    { "name": "applicantPhone", "label": "Phone", "kind": "text", "required": true, "pattern": "^[0-9]{10}$" },
+    { "name": "season", "label": "Season", "kind": "select", "required": false,
+      "options": [{ "value": "Kharif", "label": "Kharif" }] }
+  ]
+}
+```
+
+| Field | Required | Notes |
+|---|:--:|---|
+| `formId` | Yes | Names this one form |
+| `context` | Yes | Opaque. The client keeps it as received |
+| `fields[].name`, `label`, `kind`, `required` | Yes | `kind` is `text`, `textarea`, `select` or `secret` today; an open set |
+| `fields[].pattern`, `minLength`, `maxLength` | No | Present only when the field has the rule |
+| `fields[].options` | No | `{ value, label }`. Present only for a `select` |
+
+Sending a filled form back is not in this contract yet. The answer still
+carries the form, so the client can draw it.
 
 ### 5.3 How the client renders each outcome
 
@@ -337,12 +364,12 @@ through untouched.
 | `partially_answered` | A mix — answer, a refusal for part of the ask, maybe a question | Draws each item in order | `response/partially-answered.json` |
 | `rejected` | A `refusal` item | Draws it, styled as a refusal | `response/rejected.json` |
 | `no_match` | Text ("I could not find a source for that") | Draws it | `response/no-match.json` |
-| `requires_input` | A question back ("Which district?") | Draws it. The user's next message is the reply | `response/requires-input.json` |
+| `requires_input` | A question back ("Which district?"), or text and a `form` | Draws it. The user's next message is the reply | `response/requires-input.json` |
 | `unavailable` | Text saying what is down, **or nothing**, plus `error` | Draws `content`; if empty, shows its own message for `error.code`. Retry if `error.retryable`. Kept out of history | `response/unavailable.json`, `response/unavailable-internal.json` |
 
 The client branches on exactly two things:
 
-1. **`content[].type`** — `text` or `refusal`, for styling.
+1. **`content[].type`** — `text` or `refusal` for styling; `form` to draw a form.
 2. **`error`** — present means the turn failed: show Retry when
    `error.retryable` is true, and keep the turn out of history.
 
@@ -532,6 +559,7 @@ Reshaping a terminal frame into `FinalAnswer`:
 | `content[]` `text` | `{ type: "text", text, citations }` |
 | `content[].annotations[]` (`url_citation`) | `citations[]`: `sourceId`, `startIndex` → `start`, `endIndex` → `end`. `url`/`sourceName` dropped — they are on `sources` |
 | `content[]` `refusal` | `{ type: "refusal", text }` |
+| `content[]` `form` | `{ type: "form", formId, context, fields }`, unchanged. A form without `formId` or `context` fails the frame |
 | `sources[]` | `{ id, name, url }`. `kind` dropped |
 | `error` (`code`, `message`, `retryable`, `retryAfterSeconds`) | `error`, same fields |
 

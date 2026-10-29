@@ -5,6 +5,9 @@ from experience_api.chat.adapters.http.schemas import wire
 from experience_api.chat.domain import (
     Answer,
     Citation,
+    FormBlock,
+    FormField,
+    FormOption,
     Outcome,
     RefusalBlock,
     Source,
@@ -74,3 +77,66 @@ def test_an_unavailable_turn_carries_its_error() -> None:
         "retryable": True,
         "retryAfterSeconds": 5,
     }
+
+
+def test_a_form_goes_out_in_camel_case_with_optional_rules_left_out() -> None:
+    answer = Answer(
+        outcome=Outcome(status="requires_input", cause=None),
+        content=(
+            FormBlock(
+                form_id="f-1",
+                context={
+                    "scheme": "PMFBY",
+                    "category": "Grievance",
+                    "action": "support",
+                },
+                fields=(
+                    FormField(
+                        name="applicantPhone",
+                        label="Phone",
+                        kind="text",
+                        required=True,
+                        min_length=10,
+                    ),
+                    FormField(
+                        name="season",
+                        label="Season",
+                        kind="select",
+                        required=False,
+                        options=(FormOption(value="Kharif", label="Kharif"),),
+                    ),
+                ),
+            ),
+        ),
+        sources=(),
+    )
+
+    body = wire(to_final_answer(IDS, answer))
+
+    assert body["content"] == [
+        {
+            "type": "form",
+            "formId": "f-1",
+            "context": {
+                "scheme": "PMFBY",
+                "category": "Grievance",
+                "action": "support",
+            },
+            "fields": [
+                {
+                    "name": "applicantPhone",
+                    "label": "Phone",
+                    "kind": "text",
+                    "required": True,
+                    "minLength": 10,
+                },
+                {
+                    "name": "season",
+                    "label": "Season",
+                    "kind": "select",
+                    "required": False,
+                    "options": [{"value": "Kharif", "label": "Kharif"}],
+                },
+            ],
+        }
+    ]
