@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from experience_api.chat.adapters.http.schemas import ChatRequest
 from tests.support.examples import FOLLOW_UP as EXAMPLE
+from tests.support.examples import FORM_SENT
 
 
 def _with(path: str, value: Any) -> dict[str, Any]:
@@ -144,3 +145,79 @@ def test_a_null_channel_is_none() -> None:
 
 def test_web_is_a_channel() -> None:
     assert ChatRequest.model_validate(_with("channel", "web")).channel == "web"
+
+
+# ---------------------------------------------------------------------------
+# A filled form sent back, contract §4.2.
+# ---------------------------------------------------------------------------
+
+
+def _form_with(path: str, value: Any) -> dict[str, Any]:
+    """The form example with one field of its form replaced, as `_with` does."""
+
+    body = copy.deepcopy(FORM_SENT)
+    *parents, last = f"content.0.{path}".split(".")
+    node: Any = body
+    for key in parents:
+        node = node[int(key)] if key.isdigit() else node[key]
+    if value is ...:
+        del node[int(last) if last.isdigit() else last]
+    else:
+        node[int(last) if last.isdigit() else last] = value
+    return body
+
+
+def test_the_form_example_is_valid() -> None:
+    request = ChatRequest.model_validate(FORM_SENT)
+
+    assert request.query is None
+    assert request.content is not None
+    assert request.content[0].fields[1].value == ""
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        FORM_SENT | {"query": "And what about tomorrow?"},
+        {k: v for k, v in FORM_SENT.items() if k != "content"},
+        FORM_SENT | {"content": []},
+        FORM_SENT | {"content": FORM_SENT["content"] * 2},
+        FORM_SENT | {"content": None},
+        _form_with("type", "text"),
+        _form_with("formId", ...),
+        _form_with("formId", " "),
+        _form_with("context", ...),
+        _form_with("context", {"scheme": 1}),
+        _form_with("submissionId", ...),
+        _form_with("submissionId", "s-1"),
+        _form_with("fields", ...),
+        _form_with("fields.0.name", ""),
+        _form_with("fields.0.value", ...),
+        _form_with("fields.0.value", 9876543210),
+        _form_with("fields.0.label", "Phone"),
+        _form_with("extra", True),
+    ],
+    ids=[
+        "query and content both",
+        "neither query nor content",
+        "content empty",
+        "two forms",
+        "content null",
+        "item not a form",
+        "formId missing",
+        "formId blank",
+        "context missing",
+        "context value not a string",
+        "submissionId missing",
+        "submissionId not a UUID",
+        "fields missing",
+        "field name empty",
+        "field value missing",
+        "field value a number",
+        "unknown field in a field",
+        "unknown field in the form",
+    ],
+)
+def test_form_rejected(body: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate(body)

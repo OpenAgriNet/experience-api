@@ -3,7 +3,14 @@ contract cannot drift apart silently."""
 
 from typing import Any
 
-from experience_api.chat.domain import Channel, ChatTurn, Location, Message
+from experience_api.chat.domain import (
+    Channel,
+    ChatTurn,
+    FieldValue,
+    FormSubmission,
+    Location,
+    Message,
+)
 
 # Contract §4, the follow-up request.
 FOLLOW_UP: dict[str, Any] = {
@@ -129,3 +136,44 @@ DSS_REQUEST: dict[str, Any] = {
         "userContext": [{"type": "identity", "userId": "anonymous"}],
     },
 }
+
+# Contract §4.2: a filled form sent back, in place of `query`.
+FORM_CONTEXT = {"scheme": "PMFBY", "category": "Grievance", "action": "support"}
+FORM_SENT: dict[str, Any] = {
+    "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+    "messageId": "5b0e1c2a-7d4f-4a8e-9c3b-1f2e3d4c5b6a",
+    "content": [
+        {
+            "type": "form",
+            "formId": "f-1",
+            "context": FORM_CONTEXT,
+            "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+            "fields": [
+                {"name": "applicantPhone", "value": "9876543210"},
+                {"name": "season", "value": ""},
+            ],
+        }
+    ],
+    "history": [],
+    "language": {"source": "en", "target": "en"},
+}
+
+# The same request as a turn.
+FORM_SENT_TURN = ChatTurn(
+    session_id="68a3872f-3f0d-4cf6-99a3-a350132a0080",
+    message_id="5b0e1c2a-7d4f-4a8e-9c3b-1f2e3d4c5b6a",
+    query=FormSubmission(
+        form_id="f-1",
+        context=FORM_CONTEXT,
+        submission_id="9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+        values=(
+            FieldValue("applicantPhone", "9876543210"),
+            FieldValue("season", ""),
+        ),
+    ),
+    history=(),
+    source_language="en",
+    target_language="en",
+    location=None,
+    channel=Channel.WEB,
+)

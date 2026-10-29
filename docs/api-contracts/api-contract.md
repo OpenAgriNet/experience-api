@@ -189,8 +189,9 @@ Example in the parked fixtures: `request/follow-up.json`
 | Field | Type | Required | Rule |
 |---|---|:--:|---|
 | `sessionId` | string, UUID | Yes | |
-| `messageId` | string, UUID | Yes | Id of the message in `query` |
-| `query` | string | Yes | Not empty after trimming |
+| `messageId` | string, UUID | Yes | Id of the message in `query`, or of the form in `content` |
+| `query` | string | One of `query` or `content` | A typed question. Not empty after trimming |
+| `content` | array of one `form` | One of `query` or `content` | A filled form sent back (§4.2). Exactly one item |
 | `history` | array | Yes | May be empty. Oldest first. Alternating is not required. Too long → `413` (§6.2) |
 | `history[].role` | `user` \| `assistant` | Yes | |
 | `history[].text` | string | Yes | Not empty after trimming |
@@ -200,6 +201,9 @@ Example in the parked fixtures: `request/follow-up.json`
 | `location.latitude` | number | With `location` | −90 to 90 |
 | `location.longitude` | number | With `location` | −180 to 180 |
 | `channel` | `web` | No | Where the chat comes from. Missing or `null` → the deployment's default. Any other value → `422` |
+
+A request carries **exactly one** of `query` and `content`. Both, or neither,
+is a `422`: the DSS takes one kind of message per turn.
 
 Why `query` is separate from `history`: the current message is explicit rather
 than "the last user entry". The DSS treats the last `user` message as the
@@ -230,6 +234,44 @@ rejection therefore always means an API bug, and is reported as
   DSS cannot link the user's reply to it.
 - When stubs are on, nothing reaches the API, so stub replies never enter a
   real request.
+
+### 4.2 Sending a form back
+
+When the farmer fills in a `form` (§5.2) and confirms, the client sends it as
+`content` in place of `query`:
+
+```json
+{
+  "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+  "messageId": "5b0e1c2a-7d4f-4a8e-9c3b-1f2e3d4c5b6a",
+  "content": [
+    {
+      "type": "form",
+      "formId": "f-1",
+      "context": { "scheme": "PMFBY", "category": "Grievance", "action": "support" },
+      "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+      "fields": [
+        { "name": "applicantPhone", "value": "9876543210" },
+        { "name": "season", "value": "" }
+      ]
+    }
+  ],
+  "history": [],
+  "language": { "source": "en", "target": "en" }
+}
+```
+
+| Field | Type | Required | Rule |
+|---|---|:--:|---|
+| `content[].type` | `form` | Yes | |
+| `content[].formId` | string | Yes | As the `form` item gave it. Not empty |
+| `content[].context` | object of strings | Yes | As the `form` item gave it, unchanged. The API does not read it |
+| `content[].submissionId` | string, UUID | Yes | Made by the client, new for every submit, including a resubmit after errors |
+| `content[].fields[].name` | string | Yes | Not empty |
+| `content[].fields[].value` | string | Yes | May be empty: an optional field left blank |
+
+The API checks the shape only. The DSS checks the values against the form's
+rules and hands back what is wrong as a `form_error` item (§5.2).
 
 ---
 
@@ -316,10 +358,11 @@ Example in the parked fixtures: `response/answered.json`
 | `outcome.status` | Yes | `answered`, `partially_answered`, `rejected`, `no_match`, `requires_input`, `unavailable`. For logs; the client does not branch on it (§5.3) |
 | `outcome.cause` | Yes, may be `null` | Open set, passed through. Treated as an opaque string |
 | `content` | Yes, may be `[]` | In order. Empty only when `error` is present |
-| `content[].type` | Yes | `text`, `refusal` or `form` |
+| `content[].type` | Yes | `text`, `refusal`, `form` or `form_error` |
 | `content[].text` | `text` and `refusal` | Markdown, as today |
 | `content[].citations` | `text` only; may be `[]` | `start`/`end` are Unicode code-point offsets into `text` |
 | `content[].formId`, `context`, `fields` | `form` only | An empty form to fill in. Shape below |
+| `content[].formId`, `context`, `submissionId`, `fields` | `form_error` only | A sent form handed back. Shape below |
 | `sources` | Yes, may be `[]` | `{ id, name, url? }`. What citations point at |
 | `error` | No | Present only when the turn failed. `Error` shape (§6) |
 
@@ -349,8 +392,36 @@ A `form` item asks the farmer for details, such as for a grievance:
 | `fields[].pattern`, `minLength`, `maxLength` | No | Present only when the field has the rule |
 | `fields[].options` | No | `{ value, label }`. Present only for a `select` |
 
-Sending a filled form back is not in this contract yet. The answer still
-carries the form, so the client can draw it.
+The client sends a filled form back as `content` (§4.2).
+
+A `form_error` item hands a sent form back. **It means the form is still the
+farmer's**: the client keeps it open and lets them send it again.
+
+```json
+{
+  "type": "form_error",
+  "formId": "f-1",
+  "context": { "scheme": "PMFBY", "category": "Grievance", "action": "support" },
+  "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+  "fields": [
+    { "name": "applicantPhone", "label": "Phone", "error": "Enter a 10-digit phone number" }
+  ]
+}
+```
+
+| Field | Required | Notes |
+|---|:--:|---|
+| `formId`, `context` | Yes | The form's, as sent |
+| `submissionId` | Yes | The submission this answers |
+| `fields` | Yes, may be `[]` | `{ name, label, error }`: what to fix, in the user's language. **Empty** when the values were fine but the office could not take the form; `outcome` and `error` then say why |
+
+How a sent form ends, by what the answer carries:
+
+| `outcome.status` | `content` | Meaning |
+|---|---|---|
+| `requires_input` | text and a `form_error` with fields | Fix those fields and send again |
+| `unavailable` | text and a `form_error` with no fields, plus `error` | Not filed. The form stays; `error.retryable` says if trying later can help |
+| `answered` | text | Filed. The text names the ticket |
 
 ### 5.3 How the client renders each outcome
 
@@ -370,7 +441,8 @@ through untouched.
 
 The client branches on exactly two things:
 
-1. **`content[].type`** — `text` or `refusal` for styling; `form` to draw a form.
+1. **`content[].type`** — `text` or `refusal` for styling; `form` to draw a
+   form; `form_error` to reopen a sent form.
 2. **`error`** — present means the turn failed: show Retry when
    `error.retryable` is true, and keep the turn out of history.
 
@@ -520,7 +592,7 @@ is what the API sends for `request/follow-up.json`.
 | `context.messageId` | Client `messageId` |
 | `context.version` | Omitted. It is a DSS response field |
 | `context.senderId` | API config (`EXPERIENCE_API_SENDER_ID`): the network participant this deployment serves. Always sent |
-| `message.input` | `history` as sent, then `query` as the last `user` item. Each text becomes `[{ "type": "text", "text": … }]` |
+| `message.input` | `history` as sent, then `query` as the last `user` item. Each text becomes `[{ "type": "text", "text": … }]`. A form in `content` is the last `user` item instead: `[{ "type": "form", formId, context, submissionId, fields }]`, unchanged |
 | `attributes.channel` | Client `channel`; when missing, API config (`EXPERIENCE_API_CHANNEL`) |
 | `attributes.sourceLanguage` / `targetLanguage` | Client `language.source` / `.target` |
 | `attributes.location.geometry.coordinates` | `[longitude, latitude]` — note the swap |
@@ -563,6 +635,7 @@ Reshaping a terminal frame into `FinalAnswer`:
 | `content[].annotations[]` (`url_citation`) | `citations[]`: `sourceId`, `startIndex` → `start`, `endIndex` → `end`. `url`/`sourceName` dropped — they are on `sources` |
 | `content[]` `refusal` | `{ type: "refusal", text }` |
 | `content[]` `form` | `{ type: "form", formId, context, fields }`, unchanged. A form without `formId` or `context` fails the frame |
+| `content[]` `form_error` | `{ type: "form_error", formId, context, submissionId, fields }`, unchanged. One without `formId`, `context` or `submissionId` fails the frame |
 | `sources[]` | `{ id, name, url }`. `kind` dropped |
 | `error` (`code`, `message`, `retryable`, `retryAfterSeconds`) | `error`, same fields |
 
@@ -591,7 +664,7 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
 
 1. **The DSS's prose and code disagree in places.** The live code is what
    counts: `transactionId` is required, `messageId` optional, only `text`
-   content is accepted (no `image` yet), unknown fields are rejected, and an
+   and `form` content are accepted (no `image` yet), unknown fields are rejected, and an
    `unavailable` turn ends with `turn.failed`, not `turn.completed`. ADR-0004
    and `orchestration/envelope.py` describe an older request shape — worth
    flagging to the DSS team.

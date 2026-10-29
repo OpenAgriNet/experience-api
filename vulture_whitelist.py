@@ -20,3 +20,6 @@ _.user_context
 
 # An autouse pytest fixture: pytest calls it, our code never does.
 _._settings_from_the_test_only
+
+# A pydantic model validator: pydantic calls it on every ChatRequest.
+_._one_message

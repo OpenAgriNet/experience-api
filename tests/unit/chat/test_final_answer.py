@@ -5,7 +5,9 @@ from experience_api.chat.adapters.http.schemas import wire
 from experience_api.chat.domain import (
     Answer,
     Citation,
+    FieldError,
     FormBlock,
+    FormErrorBlock,
     FormField,
     FormOption,
     Outcome,
@@ -140,3 +142,47 @@ def test_a_form_goes_out_in_camel_case_with_optional_rules_left_out() -> None:
             ],
         }
     ]
+
+
+def test_a_form_error_goes_out_in_camel_case() -> None:
+    answer = Answer(
+        outcome=Outcome(status="requires_input", cause="invalid_input"),
+        content=(
+            FormErrorBlock(
+                form_id="f-1",
+                context={"scheme": "PMFBY"},
+                submission_id="9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+                fields=(FieldError(name="applicantPhone", label="Phone", error="Bad"),),
+            ),
+        ),
+        sources=(),
+    )
+
+    body = wire(to_final_answer(IDS, answer))
+
+    assert body["content"] == [
+        {
+            "type": "form_error",
+            "formId": "f-1",
+            "context": {"scheme": "PMFBY"},
+            "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+            "fields": [{"name": "applicantPhone", "label": "Phone", "error": "Bad"}],
+        }
+    ]
+
+
+def test_a_form_error_with_no_fields_keeps_the_empty_list() -> None:
+    # The client reads an empty list as "the office could not take it"; a
+    # missing key would be a different, broken answer.
+    answer = Answer(
+        outcome=Outcome(status="unavailable", cause="provider_unavailable"),
+        content=(
+            FormErrorBlock(form_id="f-1", context={}, submission_id="s-1", fields=()),
+        ),
+        sources=(),
+        error=TurnError(code="provider_unavailable", message="m", retryable=True),
+    )
+
+    body = wire(to_final_answer(IDS, answer))
+
+    assert body["content"][0]["fields"] == []

@@ -13,7 +13,10 @@ from experience_api.chat.domain import (
     ChatTurn,
     Completed,
     Delta,
+    FieldValue,
     FormBlock,
+    FormErrorBlock,
+    FormSubmission,
     Location,
     Message,
     RefusalBlock,
@@ -27,7 +30,7 @@ def to_chat_turn(body: schemas.ChatRequest, *, default_channel: Channel) -> Chat
     return ChatTurn(
         session_id=body.session_id,
         message_id=body.message_id,
-        query=body.query,
+        query=_query(body),
         history=tuple(Message(item.role, item.text) for item in body.history),
         source_language=body.language.source,
         target_language=body.language.target,
@@ -37,6 +40,19 @@ def to_chat_turn(body: schemas.ChatRequest, *, default_channel: Channel) -> Chat
             else None
         ),
         channel=body.channel if body.channel is not None else default_channel,
+    )
+
+
+def _query(body: schemas.ChatRequest) -> str | FormSubmission:
+    if body.query is not None:
+        return body.query
+    # The schema holds exactly one of the two, and one form at most.
+    (form,) = body.content or []
+    return FormSubmission(
+        form_id=form.form_id,
+        context=form.context,
+        submission_id=form.submission_id,
+        values=tuple(FieldValue(f.name, f.value) for f in form.fields),
     )
 
 
@@ -69,11 +85,18 @@ def to_final_answer(ids: TurnIds, answer: Answer) -> schemas.FinalAnswer:
 
 def _block(
     block: Block,
-) -> schemas.TextContent | schemas.RefusalContent | schemas.FormContent:
+) -> (
+    schemas.TextContent
+    | schemas.RefusalContent
+    | schemas.FormContent
+    | schemas.FormErrorContent
+):
     if isinstance(block, RefusalBlock):
         return schemas.RefusalContent(text=block.text)
     if isinstance(block, FormBlock):
         return _form(block)
+    if isinstance(block, FormErrorBlock):
+        return _form_error(block)
     return schemas.TextContent(
         text=block.text,
         citations=[
@@ -103,6 +126,18 @@ def _form(block: FormBlock) -> schemas.FormContent:
                 ]
                 or None,
             )
+            for f in block.fields
+        ],
+    )
+
+
+def _form_error(block: FormErrorBlock) -> schemas.FormErrorContent:
+    return schemas.FormErrorContent(
+        form_id=block.form_id,
+        context=dict(block.context),
+        submission_id=block.submission_id,
+        fields=[
+            schemas.FormFieldError(name=f.name, label=f.label, error=f.error)
             for f in block.fields
         ],
     )

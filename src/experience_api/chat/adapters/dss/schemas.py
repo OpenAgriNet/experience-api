@@ -42,9 +42,24 @@ class TextPart(_Request):
     text: str
 
 
+class SubmittedField(_Request):
+    name: str
+    value: str
+
+
+class FormPart(_Request):
+    """A filled form, sent as the current user message (DSS #205)."""
+
+    type: Literal["form"] = "form"
+    form_id: str
+    context: dict[str, str]
+    submission_id: str
+    fields: list[SubmittedField]
+
+
 class InputMessage(_Request):
     role: Literal["user", "assistant"]
-    content: list[TextPart]
+    content: list[TextPart | FormPart]
 
 
 class Geometry(_Request):
@@ -123,15 +138,24 @@ class FormField(_Response):
     options: list[FormOption] = []
 
 
+class FieldError(_Response):
+    name: str
+    label: str
+    error: str
+
+
 class ContentItem(_Response):
-    """One item of any type. `form_id`, `context` and `fields` are a `form`'s."""
+    """One item of any type. `form_id`, `context` and `fields` are a `form`'s or
+    a `form_error`'s; `submission_id` is a `form_error`'s. Each reads `fields`
+    in its own shape, so both are accepted here."""
 
     type: str
     text: str | None = None
     annotations: list[Annotation] = []
     form_id: str | None = None
     context: dict[str, str] | None = None
-    fields: list[FormField] = []
+    submission_id: str | None = None
+    fields: list[FormField | FieldError] = []
 
 
 class Outcome(_Response):

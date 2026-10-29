@@ -17,7 +17,9 @@ from experience_api.chat.domain import (
     DssEvent,
     DssFinished,
     DssStarted,
+    FieldError,
     FormBlock,
+    FormErrorBlock,
     FormField,
     FormOption,
     Outcome,
@@ -258,4 +260,139 @@ def test_a_terminal_frame_without_an_outcome_is_a_protocol_error() -> None:
     data = raw.decode().split("data: ", 1)[1].strip()
 
     with pytest.raises(DssProtocolError, match="outcome"):
+        to_dss_events("turn.completed", data)
+
+
+_CONTEXT = {"scheme": "PMFBY", "category": "Grievance", "action": "support"}
+
+
+def _form_error(fields: list[dict[str, str]], **overrides: object) -> dict:
+    return {
+        "type": "form_error",
+        "formId": "f-1",
+        "context": _CONTEXT,
+        "submissionId": "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+        "fields": fields,
+    } | overrides
+
+
+def test_a_form_error_comes_through_whole() -> None:
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "requires_input", "cause": "invalid_input"},
+            "content": [
+                {"type": "text", "text": "Please check the phone number."},
+                _form_error(
+                    [
+                        {
+                            "name": "applicantPhone",
+                            "label": "Phone",
+                            "error": "Enter a 10-digit phone number",
+                        }
+                    ]
+                ),
+            ],
+            "sources": [],
+        },
+    )
+    (finished,) = _events(raw)
+
+    assert isinstance(finished, DssFinished)
+    assert finished.answer.content == (
+        TextBlock("Please check the phone number."),
+        FormErrorBlock(
+            form_id="f-1",
+            context=_CONTEXT,
+            submission_id="9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b",
+            fields=(
+                FieldError(
+                    name="applicantPhone",
+                    label="Phone",
+                    error="Enter a 10-digit phone number",
+                ),
+            ),
+        ),
+    )
+
+
+def test_a_form_the_office_could_not_take_comes_back_with_no_fields() -> None:
+    raw = frame(
+        "turn.failed",
+        2,
+        {
+            "outcome": {"status": "unavailable", "cause": "provider_rejected"},
+            "content": [
+                {"type": "text", "text": "Not filed. Please try again later."},
+                _form_error([]),
+            ],
+            "sources": [],
+            "error": {
+                "code": "provider_rejected",
+                "message": "The desk refused the filing",
+                "retryable": False,
+            },
+        },
+    )
+    (finished,) = _events(raw)
+
+    assert isinstance(finished, DssFinished)
+    form_error = finished.answer.content[1]
+    assert isinstance(form_error, FormErrorBlock)
+    assert form_error.fields == ()
+    assert finished.answer.error is not None
+    assert finished.answer.error.retryable is False
+
+
+@pytest.mark.parametrize("missing", ["formId", "context", "submissionId"])
+def test_a_form_error_without_its_ids_is_a_protocol_error(missing: str) -> None:
+    item = {k: v for k, v in _form_error([]).items() if k != missing}
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "requires_input", "cause": "invalid_input"},
+            "content": [item],
+            "sources": [],
+        },
+    )
+    data = raw.decode().split("data: ", 1)[1].strip()
+
+    with pytest.raises(DssProtocolError, match="form_error"):
+        to_dss_events("turn.completed", data)
+
+
+@pytest.mark.parametrize(
+    ("item", "match"),
+    [
+        (
+            {
+                "type": "form",
+                "formId": "f-1",
+                "context": _CONTEXT,
+                "fields": [{"name": "a", "label": "A", "error": "Bad"}],
+            },
+            "form item",
+        ),
+        (
+            _form_error([{"name": "a", "label": "A", "kind": "text"}]),
+            "form_error item",
+        ),
+    ],
+    ids=["a form field with no kind", "a form_error field with no error"],
+)
+def test_a_field_in_the_wrong_shape_is_a_protocol_error(item: dict, match: str) -> None:
+    raw = frame(
+        "turn.completed",
+        2,
+        {
+            "outcome": {"status": "requires_input", "cause": None},
+            "content": [item],
+            "sources": [],
+        },
+    )
+    data = raw.decode().split("data: ", 1)[1].strip()
+
+    with pytest.raises(DssProtocolError, match=match):
         to_dss_events("turn.completed", data)

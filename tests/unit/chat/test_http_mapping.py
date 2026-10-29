@@ -6,7 +6,7 @@ from experience_api.chat.adapters.http.mapping import to_chat_turn
 from experience_api.chat.adapters.http.schemas import ChatRequest
 from experience_api.chat.domain import Channel
 from tests.support.examples import FOLLOW_UP as EXAMPLE
-from tests.support.examples import FOLLOW_UP_TURN
+from tests.support.examples import FOLLOW_UP_TURN, FORM_SENT, FORM_SENT_TURN
 
 
 def test_the_contract_example_becomes_a_turn() -> None:
@@ -54,3 +54,11 @@ def test_no_channel_takes_the_default() -> None:
     )
 
     assert turn.channel is Channel.WEB
+
+
+def test_a_sent_form_becomes_the_turns_query() -> None:
+    turn = to_chat_turn(
+        ChatRequest.model_validate(FORM_SENT), default_channel=Channel.WEB
+    )
+
+    assert turn == FORM_SENT_TURN
