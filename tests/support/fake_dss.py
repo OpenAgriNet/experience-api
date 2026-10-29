@@ -1,8 +1,7 @@
-"""A stand-in DSS that plays canned turns.
+"""A stand-in DSS for tests. The running app always calls the real DSS.
 
-It lets the API run with no DSS behind it: for tests, and for the web client to
-try the real API. It ignores what the turn asks and plays the same answer every
-time: a short weather answer shaped like the contract's example.
+It ignores what the turn asks and plays the same answer every time: a short
+weather answer shaped like the contract's example.
 """
 
 from __future__ import annotations

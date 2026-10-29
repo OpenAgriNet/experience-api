@@ -32,7 +32,7 @@ Chat is lenient here. New DSS fields, events and content types are ignored, so
 a DSS release cannot break a turn.
 
 ### Without a DSS
-With `DSS_MODE=fake`, chat plays one canned weather answer for every turn.
+There is no stand-in. With no DSS, a turn fails. Only tests use the fake DSS.
 
 ## Key flows
 A streamed turn: client → chat → DSS, then `started`, `delta`…, `completed`
@@ -55,7 +55,6 @@ can echo the user's words.
 ## Configuration and limits
 | Setting | Default | Notes |
 |---|---|---|
-| `EXPERIENCE_API_DSS_MODE` | `fake` | `fake` or `http` |
 | `EXPERIENCE_API_DSS_BASE_URL` | `http://localhost:8077` | Checked on the first turn, not at start |
 | `EXPERIENCE_API_CHANNEL` | `web` | Sent to the DSS |
 | `EXPERIENCE_API_MAX_CHARACTERS` | `1200` | Sent to the DSS |

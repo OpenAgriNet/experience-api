@@ -26,8 +26,8 @@ Rules for working in parallel:
 
 - **§3–§6 are the contract.** Neither side changes its behaviour away from
   them. A change is made **here first**, then in code.
-- The client builds against its own stubs, with no running API. The API builds
-  against a fake DSS, with no running client.
+- Each side calls the real one: the client the API, the API the DSS. Neither
+  ships a stand-in *(amended)*. The API's tests use a fake DSS.
 
 ---
 
