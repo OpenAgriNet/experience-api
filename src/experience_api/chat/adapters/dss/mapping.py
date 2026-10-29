@@ -18,6 +18,9 @@ from experience_api.chat.domain import (
     DssEvent,
     DssFinished,
     DssStarted,
+    FormBlock,
+    FormField,
+    FormOption,
     Message,
     Outcome,
     RefusalBlock,
@@ -177,6 +180,8 @@ def _answer(event: str, message: schemas.ResponseMessage) -> Answer:
 
 
 def _block(item: schemas.ContentItem) -> Block | None:
+    if item.type == "form":
+        return _form(item)
     if item.text is None:
         return None
     if item.type == "refusal":
@@ -195,3 +200,28 @@ def _block(item: schemas.ContentItem) -> Block | None:
         )
     logger.warning("dss_content_type=%s skipped=unknown", item.type)
     return None
+
+
+def _form(item: schemas.ContentItem) -> FormBlock:
+    # Without its id and context the client cannot send the form back.
+    if item.form_id is None or item.context is None:
+        raise DssProtocolError("malformed form item: formId or context missing")
+    return FormBlock(
+        form_id=item.form_id,
+        context=item.context,
+        fields=tuple(
+            FormField(
+                name=f.name,
+                label=f.label,
+                kind=f.kind,
+                required=f.required,
+                pattern=f.pattern,
+                min_length=f.min_length,
+                max_length=f.max_length,
+                options=tuple(
+                    FormOption(value=o.value, label=o.label) for o in f.options
+                ),
+            )
+            for f in item.fields
+        ),
+    )

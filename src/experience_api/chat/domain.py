@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
@@ -68,7 +69,37 @@ class RefusalBlock:
     text: str
 
 
-Block = TextBlock | RefusalBlock
+@dataclass(frozen=True)
+class FormOption:
+    value: str
+    label: str
+
+
+@dataclass(frozen=True)
+class FormField:
+    """One field the farmer fills in, with the only rules the DSS sends."""
+
+    name: str
+    label: str
+    kind: str
+    required: bool
+    pattern: str | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    options: tuple[FormOption, ...] = ()
+
+
+@dataclass(frozen=True)
+class FormBlock:
+    """An empty form the DSS asks the farmer to fill in. `context` is opaque:
+    the client sends it back as received, so the DSS can find the form again."""
+
+    form_id: str
+    context: Mapping[str, str]
+    fields: tuple[FormField, ...]
+
+
+Block = TextBlock | RefusalBlock | FormBlock
 
 
 @dataclass(frozen=True)

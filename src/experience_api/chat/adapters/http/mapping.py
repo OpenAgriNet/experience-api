@@ -13,6 +13,7 @@ from experience_api.chat.domain import (
     ChatTurn,
     Completed,
     Delta,
+    FormBlock,
     Location,
     Message,
     RefusalBlock,
@@ -66,14 +67,43 @@ def to_final_answer(ids: TurnIds, answer: Answer) -> schemas.FinalAnswer:
     )
 
 
-def _block(block: Block) -> schemas.TextContent | schemas.RefusalContent:
+def _block(
+    block: Block,
+) -> schemas.TextContent | schemas.RefusalContent | schemas.FormContent:
     if isinstance(block, RefusalBlock):
         return schemas.RefusalContent(text=block.text)
+    if isinstance(block, FormBlock):
+        return _form(block)
     return schemas.TextContent(
         text=block.text,
         citations=[
             schemas.Citation(source_id=c.source_id, start=c.start, end=c.end)
             for c in block.citations
+        ],
+    )
+
+
+def _form(block: FormBlock) -> schemas.FormContent:
+    return schemas.FormContent(
+        form_id=block.form_id,
+        context=dict(block.context),
+        fields=[
+            schemas.FormField(
+                name=f.name,
+                label=f.label,
+                kind=f.kind,
+                required=f.required,
+                pattern=f.pattern,
+                min_length=f.min_length,
+                max_length=f.max_length,
+                # Left out, not `[]`, when a field has none: the client's type
+                # marks it optional.
+                options=[
+                    schemas.FormOption(value=o.value, label=o.label) for o in f.options
+                ]
+                or None,
+            )
+            for f in block.fields
         ],
     )
 

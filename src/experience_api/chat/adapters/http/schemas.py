@@ -121,6 +121,29 @@ class RefusalContent(_WireOut):
     text: str
 
 
+class FormOption(_WireOut):
+    value: str
+    label: str
+
+
+class FormField(_WireOut):
+    name: str
+    label: str
+    kind: str
+    required: bool
+    pattern: str | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    options: list[FormOption] | None = None
+
+
+class FormContent(_WireOut):
+    type: Literal["form"] = "form"
+    form_id: str
+    context: dict[str, str]
+    fields: list[FormField]
+
+
 class Source(_WireOut):
     id: str
     name: str
@@ -152,7 +175,7 @@ class FinalAnswer(_WireOut):
     assistant_message_id: str
     trace_id: str
     outcome: Outcome
-    content: list[TextContent | RefusalContent]
+    content: list[TextContent | RefusalContent | FormContent]
     sources: list[Source]
     error: Error | None = None
 
