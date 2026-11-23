@@ -10,6 +10,8 @@ from tests.support.examples import (
     FOLLOW_UP_TURN,
     FORM_CONTEXT,
     FORM_SENT_TURN,
+    OTP_FORM_CONTEXT,
+    RESEND_PRESSED_TURN,
     SENDER_ID,
 )
 
@@ -94,6 +96,23 @@ def test_a_sent_form_is_the_last_user_message() -> None:
                     # blank as not given.
                     {"name": "season", "value": ""},
                 ],
+            }
+        ],
+    }
+
+
+def test_a_pressed_button_is_the_last_user_message_with_the_message_id() -> None:
+    inputs = _request(RESEND_PRESSED_TURN)["message"]["input"]
+
+    assert inputs[-1] == {
+        "role": "user",
+        "content": [
+            {
+                "type": "form_action",
+                "formId": "f-2",
+                "context": OTP_FORM_CONTEXT,
+                "name": "resend_init",
+                "actionId": RESEND_PRESSED_TURN.message_id,
             }
         ],
     }

@@ -51,6 +51,15 @@ class FormSubmission:
 
 
 @dataclass(frozen=True)
+class FormAction:
+    """A button the farmer pressed on a form, such as Resend OTP. No values."""
+
+    form_id: str
+    context: Mapping[str, str]
+    name: str
+
+
+@dataclass(frozen=True)
 class ChatTurn:
     """One user message and the conversation before it, as the client sent it.
 
@@ -59,7 +68,7 @@ class ChatTurn:
 
     session_id: str
     message_id: str
-    query: str | FormSubmission
+    query: str | FormSubmission | FormAction
     history: tuple[Message, ...]
     source_language: str
     target_language: str
@@ -113,6 +122,14 @@ class FormField:
 
 
 @dataclass(frozen=True)
+class FormActionOffer:
+    """A button beside a form's submit. `name` is an open set."""
+
+    name: str
+    label: str
+
+
+@dataclass(frozen=True)
 class FormBlock:
     """An empty form the DSS asks the farmer to fill in. `context` is opaque:
     the client sends it back as received, so the DSS can find the form again."""
@@ -120,6 +137,7 @@ class FormBlock:
     form_id: str
     context: Mapping[str, str]
     fields: tuple[FormField, ...]
+    actions: tuple[FormActionOffer, ...]
 
 
 @dataclass(frozen=True)

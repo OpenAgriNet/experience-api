@@ -14,6 +14,7 @@ from experience_api.chat.domain import (
     Completed,
     Delta,
     FieldValue,
+    FormAction,
     FormBlock,
     FormErrorBlock,
     FormSubmission,
@@ -43,16 +44,18 @@ def to_chat_turn(body: schemas.ChatRequest, *, default_channel: Channel) -> Chat
     )
 
 
-def _query(body: schemas.ChatRequest) -> str | FormSubmission:
+def _query(body: schemas.ChatRequest) -> str | FormSubmission | FormAction:
     if body.query is not None:
         return body.query
-    # The schema holds exactly one of the two, and one form at most.
-    (form,) = body.content or []
+    # The schema holds exactly one of the two, and one item at most.
+    (item,) = body.content or []
+    if isinstance(item, schemas.FormActionPress):
+        return FormAction(form_id=item.form_id, context=item.context, name=item.name)
     return FormSubmission(
-        form_id=form.form_id,
-        context=form.context,
-        submission_id=form.submission_id,
-        values=tuple(FieldValue(f.name, f.value) for f in form.fields),
+        form_id=item.form_id,
+        context=item.context,
+        submission_id=item.submission_id,
+        values=tuple(FieldValue(f.name, f.value) for f in item.fields),
     )
 
 
@@ -127,6 +130,9 @@ def _form(block: FormBlock) -> schemas.FormContent:
                 or None,
             )
             for f in block.fields
+        ],
+        actions=[
+            schemas.FormActionOffer(name=a.name, label=a.label) for a in block.actions
         ],
     )
 

@@ -27,6 +27,12 @@ JSON. Either way, the client's ids come back exactly as sent.
 When the DSS cannot answer because something it needs is down, that is still
 an answer. It arrives as `completed`, with an error inside.
 
+### Forms
+The DSS may answer with a form to fill in. The client sends it back filled
+in, or presses one of its buttons, such as Resend OTP. Chat passes both to the
+DSS unchanged; a press reaches the DSS with the message's id as its press id.
+A form always reaches the client with its buttons, `[]` when it has none.
+
 ### Reading the DSS
 Chat is lenient here. New DSS fields, events and content types are ignored, so
 a DSS release cannot break a turn.
@@ -65,6 +71,7 @@ can echo the user's words.
 - 2026-09-23 FastAPI's default `422` for now; decide at peer review.
 - 2026-09-24 Always stream from the DSS, even for a JSON client.
 - 2026-09-24 Strict with the client, lenient with the DSS.
+- 2026-11-23 A button press is its own `content` item; its press id is the message id.
 
 ## Known gaps
 DSS failures do not yet map to the contract's codes (`503`, `429`, `413`,

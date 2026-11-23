@@ -7,6 +7,7 @@ from experience_api.chat.domain import (
     Channel,
     ChatTurn,
     FieldValue,
+    FormAction,
     FormSubmission,
     Location,
     Message,
@@ -171,6 +172,35 @@ FORM_SENT_TURN = ChatTurn(
             FieldValue("season", ""),
         ),
     ),
+    history=(),
+    source_language="en",
+    target_language="en",
+    location=None,
+    channel=Channel.WEB,
+)
+
+# Contract §4.3: Resend OTP pressed on an OTP form, in place of `query`.
+OTP_FORM_CONTEXT = {"scheme": "PM-KISAN", "category": "Grievance", "action": "init"}
+RESEND_PRESSED: dict[str, Any] = {
+    "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+    "messageId": "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+    "content": [
+        {
+            "type": "form_action",
+            "formId": "f-2",
+            "context": OTP_FORM_CONTEXT,
+            "name": "resend_init",
+        }
+    ],
+    "history": [],
+    "language": {"source": "en", "target": "en"},
+}
+
+# The same request as a turn.
+RESEND_PRESSED_TURN = ChatTurn(
+    session_id="68a3872f-3f0d-4cf6-99a3-a350132a0080",
+    message_id="0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+    query=FormAction(form_id="f-2", context=OTP_FORM_CONTEXT, name="resend_init"),
     history=(),
     source_language="en",
     target_language="en",

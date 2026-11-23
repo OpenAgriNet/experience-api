@@ -57,9 +57,19 @@ class FormPart(_Request):
     fields: list[SubmittedField]
 
 
+class FormActionPart(_Request):
+    """A button pressed on a form, sent as the current user message."""
+
+    type: Literal["form_action"] = "form_action"
+    form_id: str
+    context: dict[str, str]
+    name: str
+    action_id: str
+
+
 class InputMessage(_Request):
     role: Literal["user", "assistant"]
-    content: list[TextPart | FormPart]
+    content: list[TextPart | FormPart | FormActionPart]
 
 
 class Geometry(_Request):
@@ -138,6 +148,11 @@ class FormField(_Response):
     options: list[FormOption] = []
 
 
+class FormActionOffer(_Response):
+    name: str
+    label: str
+
+
 class FieldError(_Response):
     name: str
     label: str
@@ -156,6 +171,7 @@ class ContentItem(_Response):
     context: dict[str, str] | None = None
     submission_id: str | None = None
     fields: list[FormField | FieldError] = []
+    actions: list[FormActionOffer] = []
 
 
 class Outcome(_Response):

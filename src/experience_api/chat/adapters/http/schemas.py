@@ -89,6 +89,16 @@ class FormSubmission(_WireIn):
     fields: list[SubmittedField]
 
 
+class FormActionPress(_WireIn):
+    """A button pressed on a form, contract §4.3. Carries no values."""
+
+    type: Literal["form_action"]
+    form_id: Text
+    # Opaque: sent back exactly as the `form` item gave it.
+    context: dict[str, Annotated[str, Field(strict=True)]]
+    name: Text
+
+
 class ChatRequest(_WireIn):
     session_id: Uuid
     message_id: Uuid
@@ -96,7 +106,13 @@ class ChatRequest(_WireIn):
     # kind of message per turn.
     query: Text | None = None
     content: (
-        Annotated[list[FormSubmission], Field(min_length=1, max_length=1)] | None
+        Annotated[
+            list[
+                Annotated[FormSubmission | FormActionPress, Field(discriminator="type")]
+            ],
+            Field(min_length=1, max_length=1),
+        ]
+        | None
     ) = None
     history: list[HistoryItem]
     language: Language
@@ -166,11 +182,18 @@ class FormField(_WireOut):
     options: list[FormOption] | None = None
 
 
+class FormActionOffer(_WireOut):
+    name: str
+    label: str
+
+
 class FormContent(_WireOut):
     type: Literal["form"] = "form"
     form_id: str
     context: dict[str, str]
     fields: list[FormField]
+    # Kept when empty: the client never checks for the key.
+    actions: list[FormActionOffer]
 
 
 class FormFieldError(_WireOut):
