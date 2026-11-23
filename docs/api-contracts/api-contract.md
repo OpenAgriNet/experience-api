@@ -189,9 +189,9 @@ Example in the parked fixtures: `request/follow-up.json`
 | Field | Type | Required | Rule |
 |---|---|:--:|---|
 | `sessionId` | string, UUID | Yes | |
-| `messageId` | string, UUID | Yes | Id of the message in `query`, or of the form in `content` |
+| `messageId` | string, UUID | Yes | Id of the message in `query`, or of the form or button press in `content` |
 | `query` | string | One of `query` or `content` | A typed question. Not empty after trimming |
-| `content` | array of one `form` | One of `query` or `content` | A filled form sent back (§4.2). Exactly one item |
+| `content` | array of one `form` or `form_action` | One of `query` or `content` | A filled form sent back (§4.2), or a button pressed on one (§4.3). Exactly one item |
 | `history` | array | Yes | May be empty. Oldest first. Alternating is not required. Too long → `413` (§6.2) |
 | `history[].role` | `user` \| `assistant` | Yes | |
 | `history[].text` | string | Yes | Not empty after trimming |
@@ -272,6 +272,39 @@ When the farmer fills in a `form` (§5.2) and confirms, the client sends it as
 
 The API checks the shape only. The DSS checks the values against the form's
 rules and hands back what is wrong as a `form_error` item (§5.2).
+
+### 4.3 Pressing a form's button
+
+A `form` may offer buttons beside its submit, in `actions` (§5.2), such as
+Resend OTP. When the farmer presses one, the client sends it as `content` in
+place of `query`. It carries no field values.
+
+```json
+{
+  "sessionId": "68a3872f-3f0d-4cf6-99a3-a350132a0080",
+  "messageId": "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "content": [
+    {
+      "type": "form_action",
+      "formId": "f-2",
+      "context": { "scheme": "PM-KISAN", "category": "Grievance", "action": "init" },
+      "name": "resend_init"
+    }
+  ],
+  "history": [],
+  "language": { "source": "en", "target": "en" }
+}
+```
+
+| Field | Type | Required | Rule |
+|---|---|:--:|---|
+| `content[].type` | `form_action` | Yes | |
+| `content[].formId` | string | Yes | The form the button was on. Not empty |
+| `content[].context` | object of strings | Yes | As the `form` item gave it, unchanged |
+| `content[].name` | string | Yes | The action's `name`, as the `form` item gave it. Not empty |
+
+`messageId` names the press: a new one for every press. The API checks the
+shape only; the DSS refuses a button the form did not offer.
 
 ---
 
@@ -361,13 +394,16 @@ Example in the parked fixtures: `response/answered.json`
 | `content[].type` | Yes | `text`, `refusal`, `form` or `form_error` |
 | `content[].text` | `text` and `refusal` | Markdown, as today |
 | `content[].citations` | `text` only; may be `[]` | `start`/`end` are Unicode code-point offsets into `text` |
-| `content[].formId`, `context`, `fields` | `form` only | An empty form to fill in. Shape below |
+| `content[].formId`, `context`, `fields`, `actions` | `form` only | An empty form to fill in. Shape below |
 | `content[].formId`, `context`, `submissionId`, `fields` | `form_error` only | A sent form handed back. Shape below |
 | `sources` | Yes, may be `[]` | `{ id, name, url? }`. What citations point at |
 | `error` | No | Present only when the turn failed. `Error` shape (§6) |
 
 `confidence` is dropped on purpose: nothing in the client should act on it yet.
 It is easy to add later.
+
+The API may add optional response fields in a `/v1` release. The client ignores
+any field it does not know.
 
 A `form` item asks the farmer for details, such as for a grievance:
 
@@ -380,7 +416,8 @@ A `form` item asks the farmer for details, such as for a grievance:
     { "name": "applicantPhone", "label": "Phone", "kind": "text", "required": true, "pattern": "^[0-9]{10}$" },
     { "name": "season", "label": "Season", "kind": "select", "required": false,
       "options": [{ "value": "Kharif", "label": "Kharif" }] }
-  ]
+  ],
+  "actions": []
 }
 ```
 
@@ -391,8 +428,10 @@ A `form` item asks the farmer for details, such as for a grievance:
 | `fields[].name`, `label`, `kind`, `required` | Yes | `kind` is `text`, `textarea`, `select` or `secret` today; an open set |
 | `fields[].pattern`, `minLength`, `maxLength` | No | Present only when the field has the rule |
 | `fields[].options` | No | `{ value, label }`. Present only for a `select` |
+| `actions` | Yes, may be `[]` | Buttons beside submit: `{ name, label }`, `label` in the user's language. `name` is an open set; today only `resend_init` (Resend OTP, on an OTP form) |
 
-The client sends a filled form back as `content` (§4.2).
+The client sends a filled form back as `content` (§4.2), or a pressed button
+(§4.3). It draws a button for each `name` it knows and skips the rest.
 
 A `form_error` item hands a sent form back. **It means the form is still the
 farmer's**: the client keeps it open and lets them send it again.
@@ -442,7 +481,7 @@ through untouched.
 The client branches on exactly two things:
 
 1. **`content[].type`** — `text` or `refusal` for styling; `form` to draw a
-   form; `form_error` to reopen a sent form.
+   form and its `actions`; `form_error` to reopen a sent form.
 2. **`error`** — present means the turn failed: show Retry when
    `error.retryable` is true, and keep the turn out of history.
 
@@ -592,7 +631,7 @@ is what the API sends for `request/follow-up.json`.
 | `context.messageId` | Client `messageId` |
 | `context.version` | Omitted. It is a DSS response field |
 | `context.senderId` | API config (`EXPERIENCE_API_SENDER_ID`): the network participant this deployment serves. Always sent |
-| `message.input` | `history` as sent, then `query` as the last `user` item. Each text becomes `[{ "type": "text", "text": … }]`. A form in `content` is the last `user` item instead: `[{ "type": "form", formId, context, submissionId, fields }]`, unchanged |
+| `message.input` | `history` as sent, then `query` as the last `user` item. Each text becomes `[{ "type": "text", "text": … }]`. A form in `content` is the last `user` item instead: `[{ "type": "form", formId, context, submissionId, fields }]`, unchanged. A pressed button is `[{ "type": "form_action", formId, context, name, actionId }]`, with `actionId` the client `messageId` |
 | `attributes.channel` | Client `channel`; when missing, API config (`EXPERIENCE_API_CHANNEL`) |
 | `attributes.sourceLanguage` / `targetLanguage` | Client `language.source` / `.target` |
 | `attributes.location.geometry.coordinates` | `[longitude, latitude]` — note the swap |
@@ -634,7 +673,7 @@ Reshaping a terminal frame into `FinalAnswer`:
 | `content[]` `text` | `{ type: "text", text, citations }` |
 | `content[].annotations[]` (`url_citation`) | `citations[]`: `sourceId`, `startIndex` → `start`, `endIndex` → `end`. `url`/`sourceName` dropped — they are on `sources` |
 | `content[]` `refusal` | `{ type: "refusal", text }` |
-| `content[]` `form` | `{ type: "form", formId, context, fields }`, unchanged. A form without `formId` or `context` fails the frame |
+| `content[]` `form` | `{ type: "form", formId, context, fields, actions }`, unchanged; `actions` is `[]` when the DSS sends none. A form without `formId` or `context` fails the frame |
 | `content[]` `form_error` | `{ type: "form_error", formId, context, submissionId, fields }`, unchanged. One without `formId`, `context` or `submissionId` fails the frame |
 | `sources[]` | `{ id, name, url }`. `kind` dropped |
 | `error` (`code`, `message`, `retryable`, `retryAfterSeconds`) | `error`, same fields |
@@ -663,8 +702,8 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
 ### 8.2 Still open
 
 1. **The DSS's prose and code disagree in places.** The live code is what
-   counts: `transactionId` is required, `messageId` optional, only `text`
-   and `form` content are accepted (no `image` yet), unknown fields are rejected, and an
+   counts: `transactionId` is required, `messageId` optional, only `text`,
+   `form` and `form_action` content are accepted (no `image` yet), unknown fields are rejected, and an
    `unavailable` turn ends with `turn.failed`, not `turn.completed`. ADR-0004
    and `orchestration/envelope.py` describe an older request shape — worth
    flagging to the DSS team.
@@ -683,7 +722,13 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
    what the front proxy and the client actually do. Not needed for the first
    build. (The client's SSE parser should still ignore `:` comment lines,
    since that is standard SSE.)
-6. **Fixture-based testing — parked.** `experience-api-fixtures/` holds sample
+6. **Resend OTP limits need a release here too.** The DSS's follow-up story
+   adds `availableAfterSeconds` and `remaining` to a form's actions, and the
+   OTP's expiry. This API reads only `name` and `label`, so those fields stop
+   here until it adds them. `actionId` (the press's `messageId`) dedupes a
+   retried request, not a second tap; the client disables the button while a
+   press is in flight. A press is not logged here by name yet.
+7. **Fixture-based testing — parked.** `experience-api-fixtures/` holds sample
    files for every example here, checked against the live DSS models. Whether
    the two builds test against them is not decided. Until then they are
    reference only, and neither build depends on them.
@@ -700,6 +745,7 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
 | §0 | Links to the architecture doc and the fixtures | Links to ADR-0001; fixtures named, not linked | They live in another repo now |
 | §4 | No `channel`; the channel was fixed per deployment | Optional `channel`, `web` only; missing means the deployment default | One API can serve more than one channel (#192) |
 | §7 | No sender in `context` | `context.senderId` from API config | The DSS can tell network participants apart (#192) |
+| §4.3, §5.2, §7 | A `form` had no buttons; `content` took only a filled form | A `form` carries `actions`; `content` may be one pressed button, sent to the DSS as `form_action` with `actionId` = `messageId` | Resend OTP (DSS ADR-0025, engineering-tracker#209) |
 
 ## 9. What changes in this client *(web client only)*
 

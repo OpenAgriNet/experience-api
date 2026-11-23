@@ -19,6 +19,8 @@ from experience_api.chat.domain import (
     DssFinished,
     DssStarted,
     FieldError,
+    FormAction,
+    FormActionOffer,
     FormBlock,
     FormErrorBlock,
     FormField,
@@ -72,7 +74,10 @@ def to_dss_request(
             sender_id=sender_id,
         ),
         message=schemas.Message(
-            input=[*(_input(message) for message in turn.history), _query(turn.query)],
+            input=[
+                *(_input(message) for message in turn.history),
+                _query(turn.query, message_id=turn.message_id),
+            ],
             attributes=schemas.Attributes(
                 channel=turn.channel,
                 source_language=turn.source_language,
@@ -100,21 +105,36 @@ def _input(message: Message) -> schemas.InputMessage:
     )
 
 
-def _query(query: str | FormSubmission) -> schemas.InputMessage:
-    if isinstance(query, str):
-        return _input(Message("user", query))
-    return schemas.InputMessage(
-        role="user",
-        content=[
-            schemas.FormPart(
-                form_id=query.form_id,
-                context=dict(query.context),
-                submission_id=query.submission_id,
-                fields=[
-                    schemas.SubmittedField(name=v.name, value=v.value)
-                    for v in query.values
-                ],
-            )
+def _query(
+    query: str | FormSubmission | FormAction, *, message_id: str
+) -> schemas.InputMessage:
+    match query:
+        case str():
+            return _input(Message("user", query))
+        case FormAction():
+            # Each press is a new message.
+            part = _pressed(query, action_id=message_id)
+        case FormSubmission():
+            part = _submitted(query)
+    return schemas.InputMessage(role="user", content=[part])
+
+
+def _pressed(press: FormAction, *, action_id: str) -> schemas.FormActionPart:
+    return schemas.FormActionPart(
+        form_id=press.form_id,
+        context=dict(press.context),
+        name=press.name,
+        action_id=action_id,
+    )
+
+
+def _submitted(form: FormSubmission) -> schemas.FormPart:
+    return schemas.FormPart(
+        form_id=form.form_id,
+        context=dict(form.context),
+        submission_id=form.submission_id,
+        fields=[
+            schemas.SubmittedField(name=v.name, value=v.value) for v in form.values
         ],
     )
 
@@ -247,6 +267,9 @@ def _form(item: schemas.ContentItem) -> FormBlock:
             )
             for f in item.fields
             if isinstance(f, schemas.FormField)
+        ),
+        actions=tuple(
+            FormActionOffer(name=a.name, label=a.label) for a in item.actions
         ),
     )
 

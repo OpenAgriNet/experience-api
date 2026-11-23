@@ -18,6 +18,7 @@ from experience_api.chat.domain import (
     DssFinished,
     DssStarted,
     FieldError,
+    FormActionOffer,
     FormBlock,
     FormErrorBlock,
     FormField,
@@ -169,6 +170,7 @@ def test_a_form_comes_through_whole() -> None:
                             "options": [{"value": "Kharif", "label": "Kharif"}],
                         },
                     ],
+                    "actions": [{"name": "resend_init", "label": "Resend OTP"}],
                 },
             ],
             "sources": [],
@@ -200,8 +202,24 @@ def test_a_form_comes_through_whole() -> None:
                     options=(FormOption(value="Kharif", label="Kharif"),),
                 ),
             ),
+            actions=(FormActionOffer(name="resend_init", label="Resend OTP"),),
         ),
     )
+
+
+def test_a_form_the_dss_sends_without_buttons_has_none() -> None:
+    form = {"type": "form", "formId": "f-1", "context": {}, "fields": []}
+    raw = frame(
+        "turn.completed",
+        2,
+        {"outcome": {"status": "requires_input"}, "content": [form], "sources": []},
+    )
+    (finished,) = _events(raw)
+
+    assert isinstance(finished, DssFinished)
+    (block,) = finished.answer.content
+    assert isinstance(block, FormBlock)
+    assert block.actions == ()
 
 
 def test_a_form_without_its_id_is_a_protocol_error() -> None:

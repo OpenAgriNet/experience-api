@@ -10,16 +10,16 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from experience_api.chat.adapters.http.schemas import ChatRequest
+from experience_api.chat.adapters.http.schemas import ChatRequest, FormSubmission
 from tests.support.examples import FOLLOW_UP as EXAMPLE
-from tests.support.examples import FORM_SENT
+from tests.support.examples import FORM_SENT, RESEND_PRESSED
 
 
-def _with(path: str, value: Any) -> dict[str, Any]:
-    """The example with one field replaced. `path` is dotted; a list index is a
+def _replaced(example: dict[str, Any], path: str, value: Any) -> dict[str, Any]:
+    """`example` with one field replaced. `path` is dotted; a list index is a
     number. The value `...` deletes the field."""
 
-    body = copy.deepcopy(EXAMPLE)
+    body = copy.deepcopy(example)
     *parents, last = path.split(".")
     node: Any = body
     for key in parents:
@@ -29,6 +29,10 @@ def _with(path: str, value: Any) -> dict[str, Any]:
     else:
         node[int(last) if last.isdigit() else last] = value
     return body
+
+
+def _with(path: str, value: Any) -> dict[str, Any]:
+    return _replaced(EXAMPLE, path, value)
 
 
 def test_the_contract_example_is_valid() -> None:
@@ -153,18 +157,7 @@ def test_web_is_a_channel() -> None:
 
 
 def _form_with(path: str, value: Any) -> dict[str, Any]:
-    """The form example with one field of its form replaced, as `_with` does."""
-
-    body = copy.deepcopy(FORM_SENT)
-    *parents, last = f"content.0.{path}".split(".")
-    node: Any = body
-    for key in parents:
-        node = node[int(key)] if key.isdigit() else node[key]
-    if value is ...:
-        del node[int(last) if last.isdigit() else last]
-    else:
-        node[int(last) if last.isdigit() else last] = value
-    return body
+    return _replaced(FORM_SENT, f"content.0.{path}", value)
 
 
 def test_the_form_example_is_valid() -> None:
@@ -172,7 +165,9 @@ def test_the_form_example_is_valid() -> None:
 
     assert request.query is None
     assert request.content is not None
-    assert request.content[0].fields[1].value == ""
+    (form,) = request.content
+    assert isinstance(form, FormSubmission)
+    assert form.fields[1].value == ""
 
 
 @pytest.mark.parametrize(
@@ -219,5 +214,42 @@ def test_the_form_example_is_valid() -> None:
     ],
 )
 def test_form_rejected(body: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate(body)
+
+
+# ---------------------------------------------------------------------------
+# A button pressed on a form, contract §4.3.
+# ---------------------------------------------------------------------------
+
+
+def _press_with(field: str, value: Any) -> dict[str, Any]:
+    return _replaced(RESEND_PRESSED, f"content.0.{field}", value)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        RESEND_PRESSED | {"query": "Send it again"},
+        RESEND_PRESSED | {"content": RESEND_PRESSED["content"] + FORM_SENT["content"]},
+        _press_with("formId", " "),
+        _press_with("context", ...),
+        _press_with("name", ...),
+        _press_with("name", ""),
+        _press_with("fields", []),
+        _press_with("submissionId", "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b"),
+    ],
+    ids=[
+        "query and a press both",
+        "a press and a form",
+        "formId blank",
+        "context missing",
+        "name missing",
+        "name empty",
+        "fields on a press",
+        "submissionId on a press",
+    ],
+)
+def test_press_rejected(body: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         ChatRequest.model_validate(body)

@@ -6,6 +6,7 @@ from experience_api.chat.domain import (
     Answer,
     Citation,
     FieldError,
+    FormActionOffer,
     FormBlock,
     FormErrorBlock,
     FormField,
@@ -108,6 +109,7 @@ def test_a_form_goes_out_in_camel_case_with_optional_rules_left_out() -> None:
                         options=(FormOption(value="Kharif", label="Kharif"),),
                     ),
                 ),
+                actions=(),
             ),
         ),
         sources=(),
@@ -140,8 +142,29 @@ def test_a_form_goes_out_in_camel_case_with_optional_rules_left_out() -> None:
                     "options": [{"value": "Kharif", "label": "Kharif"}],
                 },
             ],
+            # Always sent, so the client never checks for the key.
+            "actions": [],
         }
     ]
+
+
+def test_a_forms_buttons_go_out_with_it() -> None:
+    answer = Answer(
+        outcome=Outcome(status="requires_input", cause=None),
+        content=(
+            FormBlock(
+                form_id="f-2",
+                context={},
+                fields=(),
+                actions=(FormActionOffer(name="resend_init", label="Resend OTP"),),
+            ),
+        ),
+        sources=(),
+    )
+
+    (form,) = wire(to_final_answer(IDS, answer))["content"]
+
+    assert form["actions"] == [{"name": "resend_init", "label": "Resend OTP"}]
 
 
 def test_a_form_error_goes_out_in_camel_case() -> None:

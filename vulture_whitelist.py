@@ -17,6 +17,7 @@ _.coordinates
 _.user_id
 _.input
 _.user_context
+_.action_id
 
 # An autouse pytest fixture: pytest calls it, our code never does.
 _._settings_from_the_test_only

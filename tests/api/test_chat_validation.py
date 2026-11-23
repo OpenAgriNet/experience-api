@@ -9,7 +9,13 @@ from fastapi import FastAPI
 
 from experience_api.app import create_app
 from experience_api.chat.domain import ChatTurn, DssEvent
-from tests.support.examples import FOLLOW_UP, FORM_SENT, FORM_SENT_TURN
+from tests.support.examples import (
+    FOLLOW_UP,
+    FORM_SENT,
+    FORM_SENT_TURN,
+    RESEND_PRESSED,
+    RESEND_PRESSED_TURN,
+)
 from tests.support.fake_dss import FakeDssClient
 
 
@@ -83,6 +89,15 @@ async def test_a_sent_form_reaches_the_dss(
 
     assert response.status_code == 200
     assert [turn.query for turn in spy.turns] == [FORM_SENT_TURN.query]
+
+
+async def test_a_pressed_button_reaches_the_dss(
+    running: httpx.AsyncClient, spy: _SpyDss
+) -> None:
+    response = await running.post("/v1/chat", json=RESEND_PRESSED)
+
+    assert response.status_code == 200
+    assert [turn.query for turn in spy.turns] == [RESEND_PRESSED_TURN.query]
 
 
 async def test_a_query_beside_a_form_is_a_422_and_never_reaches_the_dss(
