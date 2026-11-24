@@ -101,18 +101,19 @@ def test_a_sent_form_is_the_last_user_message() -> None:
     }
 
 
-def test_a_pressed_button_is_the_last_user_message_with_the_message_id() -> None:
+def test_a_pressed_button_is_the_last_user_message() -> None:
     inputs = _request(RESEND_PRESSED_TURN)["message"]["input"]
 
     assert inputs[-1] == {
         "role": "user",
         "content": [
             {
-                "type": "form_action",
+                "type": "form",
                 "formId": "f-2",
                 "context": OTP_FORM_CONTEXT,
-                "name": "resend_init",
-                "actionId": RESEND_PRESSED_TURN.message_id,
+                "action": "resend_init",
+                "submissionId": "5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e",
+                "fields": [],
             }
         ],
     }

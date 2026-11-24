@@ -52,11 +52,13 @@ class FormSubmission:
 
 @dataclass(frozen=True)
 class FormAction:
-    """A button the farmer pressed on a form, such as Resend OTP. No values."""
+    """A button the farmer pressed on a form, such as Resend OTP. No values.
+    `submission_id` is new for every press."""
 
     form_id: str
     context: Mapping[str, str]
     name: str
+    submission_id: str
 
 
 @dataclass(frozen=True)

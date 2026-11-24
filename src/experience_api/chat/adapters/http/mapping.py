@@ -49,14 +49,21 @@ def _query(body: schemas.ChatRequest) -> str | FormSubmission | FormAction:
         return body.query
     # The schema holds exactly one of the two, and one item at most.
     (item,) = body.content or []
-    if isinstance(item, schemas.FormActionPress):
-        return FormAction(form_id=item.form_id, context=item.context, name=item.name)
-    return FormSubmission(
-        form_id=item.form_id,
-        context=item.context,
-        submission_id=item.submission_id,
-        values=tuple(FieldValue(f.name, f.value) for f in item.fields),
-    )
+    match item.action:
+        case None | schemas.SUBMIT:
+            return FormSubmission(
+                form_id=item.form_id,
+                context=item.context,
+                submission_id=item.submission_id,
+                values=tuple(FieldValue(f.name, f.value) for f in item.fields or ()),
+            )
+        case str() as name:
+            return FormAction(
+                form_id=item.form_id,
+                context=item.context,
+                name=name,
+                submission_id=item.submission_id,
+            )
 
 
 def to_final_answer(ids: TurnIds, answer: Answer) -> schemas.FinalAnswer:
