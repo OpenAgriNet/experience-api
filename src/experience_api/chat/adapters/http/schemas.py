@@ -78,25 +78,31 @@ class SubmittedField(_WireIn):
     value: str = Field(strict=True)
 
 
-class FormSubmission(_WireIn):
-    """A filled form sent back, contract §4.2. Only its shape is checked here."""
+# The button a sent form names when it names none.
+SUBMIT = "submit"
+
+
+class SentForm(_WireIn):
+    """A form sent back, with the button pressed: filled in on submit
+    (contract §4.2), with no values on any other (§4.3). Only its shape is
+    checked here; the DSS refuses a button the form did not offer."""
 
     type: Literal["form"]
     form_id: Text
     # Opaque: sent back exactly as the `form` item gave it.
     context: dict[str, Annotated[str, Field(strict=True)]]
+    action: Text | None = None
     submission_id: Uuid
-    fields: list[SubmittedField]
+    fields: list[SubmittedField] | None = None
 
-
-class FormActionPress(_WireIn):
-    """A button pressed on a form, contract §4.3. Carries no values."""
-
-    type: Literal["form_action"]
-    form_id: Text
-    # Opaque: sent back exactly as the `form` item gave it.
-    context: dict[str, Annotated[str, Field(strict=True)]]
-    name: Text
+    @model_validator(mode="after")
+    def _values_fit_the_button(self) -> Self:
+        is_submit = self.action in (None, SUBMIT)
+        if is_submit and self.fields is None:
+            raise ValueError("a submitted form needs its fields")
+        if not is_submit and self.fields:
+            raise ValueError("a pressed button sends no field values")
+        return self
 
 
 class ChatRequest(_WireIn):
@@ -105,15 +111,7 @@ class ChatRequest(_WireIn):
     # Exactly one of `query` and `content` (contract §4): the DSS takes one
     # kind of message per turn.
     query: Text | None = None
-    content: (
-        Annotated[
-            list[
-                Annotated[FormSubmission | FormActionPress, Field(discriminator="type")]
-            ],
-            Field(min_length=1, max_length=1),
-        ]
-        | None
-    ) = None
+    content: Annotated[list[SentForm], Field(min_length=1, max_length=1)] | None = None
     history: list[HistoryItem]
     language: Language
     location: Location | None = None

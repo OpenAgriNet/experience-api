@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from experience_api.chat.adapters.http.schemas import ChatRequest, FormSubmission
+from experience_api.chat.adapters.http.schemas import ChatRequest, SentForm
 from tests.support.examples import FOLLOW_UP as EXAMPLE
 from tests.support.examples import FORM_SENT, RESEND_PRESSED
 
@@ -166,7 +166,8 @@ def test_the_form_example_is_valid() -> None:
     assert request.query is None
     assert request.content is not None
     (form,) = request.content
-    assert isinstance(form, FormSubmission)
+    assert isinstance(form, SentForm)
+    assert form.fields is not None
     assert form.fields[1].value == ""
 
 
@@ -234,20 +235,18 @@ def _press_with(field: str, value: Any) -> dict[str, Any]:
         RESEND_PRESSED | {"content": RESEND_PRESSED["content"] + FORM_SENT["content"]},
         _press_with("formId", " "),
         _press_with("context", ...),
-        _press_with("name", ...),
-        _press_with("name", ""),
-        _press_with("fields", []),
-        _press_with("submissionId", "9e8d7c6b-5a4f-4e3d-8c2b-1a0f9e8d7c6b"),
+        _press_with("action", ""),
+        _press_with("fields", [{"name": "challenge.response.value", "value": "1"}]),
+        _press_with("submissionId", ...),
     ],
     ids=[
         "query and a press both",
         "a press and a form",
         "formId blank",
         "context missing",
-        "name missing",
-        "name empty",
-        "fields on a press",
-        "submissionId on a press",
+        "action empty",
+        "field values on a press",
+        "submissionId missing",
     ],
 )
 def test_press_rejected(body: dict[str, Any]) -> None:

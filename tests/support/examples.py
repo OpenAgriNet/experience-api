@@ -186,10 +186,11 @@ RESEND_PRESSED: dict[str, Any] = {
     "messageId": "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
     "content": [
         {
-            "type": "form_action",
+            "type": "form",
             "formId": "f-2",
             "context": OTP_FORM_CONTEXT,
-            "name": "resend_init",
+            "action": "resend_init",
+            "submissionId": "5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e",
         }
     ],
     "history": [],
@@ -200,7 +201,12 @@ RESEND_PRESSED: dict[str, Any] = {
 RESEND_PRESSED_TURN = ChatTurn(
     session_id="68a3872f-3f0d-4cf6-99a3-a350132a0080",
     message_id="0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
-    query=FormAction(form_id="f-2", context=OTP_FORM_CONTEXT, name="resend_init"),
+    query=FormAction(
+        form_id="f-2",
+        context=OTP_FORM_CONTEXT,
+        name="resend_init",
+        submission_id="5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e",
+    ),
     history=(),
     source_language="en",
     target_language="en",

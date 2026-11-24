@@ -76,7 +76,7 @@ def to_dss_request(
         message=schemas.Message(
             input=[
                 *(_input(message) for message in turn.history),
-                _query(turn.query, message_id=turn.message_id),
+                _query(turn.query),
             ],
             attributes=schemas.Attributes(
                 channel=turn.channel,
@@ -105,26 +105,24 @@ def _input(message: Message) -> schemas.InputMessage:
     )
 
 
-def _query(
-    query: str | FormSubmission | FormAction, *, message_id: str
-) -> schemas.InputMessage:
+def _query(query: str | FormSubmission | FormAction) -> schemas.InputMessage:
     match query:
         case str():
             return _input(Message("user", query))
         case FormAction():
-            # Each press is a new message.
-            part = _pressed(query, action_id=message_id)
+            part = _pressed(query)
         case FormSubmission():
             part = _submitted(query)
     return schemas.InputMessage(role="user", content=[part])
 
 
-def _pressed(press: FormAction, *, action_id: str) -> schemas.FormActionPart:
-    return schemas.FormActionPart(
+def _pressed(press: FormAction) -> schemas.FormPart:
+    return schemas.FormPart(
         form_id=press.form_id,
         context=dict(press.context),
-        name=press.name,
-        action_id=action_id,
+        action=press.name,
+        submission_id=press.submission_id,
+        fields=[],
     )
 
 

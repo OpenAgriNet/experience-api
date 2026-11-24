@@ -22,5 +22,6 @@ _.action_id
 # An autouse pytest fixture: pytest calls it, our code never does.
 _._settings_from_the_test_only
 
-# A pydantic model validator: pydantic calls it on every ChatRequest.
+# Pydantic model validators: pydantic calls them on every request.
 _._one_message
+_._values_fit_the_button

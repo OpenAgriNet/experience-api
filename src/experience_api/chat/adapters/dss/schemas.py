@@ -48,28 +48,21 @@ class SubmittedField(_Request):
 
 
 class FormPart(_Request):
-    """A filled form, sent as the current user message (DSS #205)."""
+    """A form sent back as the current user message (DSS #205): filled in, or
+    with a button pressed."""
 
     type: Literal["form"] = "form"
     form_id: str
     context: dict[str, str]
+    # The button pressed; left out on submit.
+    action: str | None = None
     submission_id: str
     fields: list[SubmittedField]
 
 
-class FormActionPart(_Request):
-    """A button pressed on a form, sent as the current user message."""
-
-    type: Literal["form_action"] = "form_action"
-    form_id: str
-    context: dict[str, str]
-    name: str
-    action_id: str
-
-
 class InputMessage(_Request):
     role: Literal["user", "assistant"]
-    content: list[TextPart | FormPart | FormActionPart]
+    content: list[TextPart | FormPart]
 
 
 class Geometry(_Request):
