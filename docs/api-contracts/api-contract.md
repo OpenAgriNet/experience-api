@@ -749,7 +749,7 @@ Sample DSS streams, one per outcome: `dss-stream/` in the parked fixtures
 | §0 | Links to the architecture doc and the fixtures | Links to ADR-0001; fixtures named, not linked | They live in another repo now |
 | §4 | No `channel`; the channel was fixed per deployment | Optional `channel`, `web` only; missing means the deployment default | One API can serve more than one channel (#192) |
 | §7 | No sender in `context` | `context.senderId` from API config | The DSS can tell network participants apart (#192) |
-| §4.3, §5.2, §7 | A `form` had no buttons; `content` took only a filled form | A `form` carries `actions`; a `form` in `content` may name a pressed button in `action`, with no values, and goes to the DSS unchanged | Resend OTP (DSS ADR-0025, engineering-tracker#209) |
+| §4.3, §5.2, §7 | A `form` had no buttons; `content` took only a filled form | A `form` carries `actions`; a `form` in `content` may name a pressed button in `action`, with no values, and goes to the DSS unchanged | Resend OTP (DSS ADR-0026, engineering-tracker#209) |
 
 ## 9. What changes in this client *(web client only)*
 
